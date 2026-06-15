@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /api
+Disallow: /private
+
+# Crawl delay
+Crawl-delay: 1
+
+# Sitemaps
+Sitemap: https://www.cavallygroupe.com/sitemap.xml
