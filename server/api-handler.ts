@@ -1,19 +1,17 @@
 import "dotenv/config";
 import express from "express";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import { appRouter } from "../server/routers";
-import { createContext } from "../server/_core/context";
-import webhookRoutes from "../server/_core/webhook-routes";
+import { appRouter } from "./routers";
+import { createContext } from "./_core/context";
+import webhookRoutes from "./_core/webhook-routes";
 
 const app = express();
 
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-// Mobile money provider webhooks
 app.use("/api/webhooks", webhookRoutes);
 
-// tRPC API
 app.use(
   "/api/trpc",
   createExpressMiddleware({
