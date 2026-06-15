@@ -9,15 +9,12 @@ const app = express();
 
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
-
 app.use("/api/webhooks", webhookRoutes);
-
 app.use(
   "/api/trpc",
-  createExpressMiddleware({
-    router: appRouter,
-    createContext,
-  })
+  createExpressMiddleware({ router: appRouter, createContext })
 );
 
-export default app;
+export default function handler(req, res) {
+  return app(req, res);
+}

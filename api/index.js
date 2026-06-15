@@ -10214,7 +10214,7 @@ var require_dist = __commonJS({
 // server/api-handler.ts
 var api_handler_exports = {};
 __export(api_handler_exports, {
-  default: () => api_handler_default
+  default: () => handler
 });
 module.exports = __toCommonJS(api_handler_exports);
 
@@ -11062,17 +11062,17 @@ var handlers = [
   octetStreamContentTypeHandler
 ];
 function getContentTypeHandler(req) {
-  const handler = handlers.find((handler$1) => handler$1.isMatch(req));
-  if (handler) return handler;
-  if (!handler && req.method === "GET") return jsonContentTypeHandler;
+  const handler2 = handlers.find((handler$1) => handler$1.isMatch(req));
+  if (handler2) return handler2;
+  if (!handler2 && req.method === "GET") return jsonContentTypeHandler;
   throw new TRPCError({
     code: "UNSUPPORTED_MEDIA_TYPE",
     message: req.headers.has("content-type") ? `Unsupported content-type "${req.headers.get("content-type")}` : "Missing content-type header"
   });
 }
 async function getRequestInfo(opts) {
-  const handler = getContentTypeHandler(opts.req);
-  return await handler.parse(opts);
+  const handler2 = getContentTypeHandler(opts.req);
+  return await handler2.parse(opts);
 }
 function isAbortError(error51) {
   return isObject(error51) && error51["name"] === "AbortError";
@@ -33702,12 +33702,11 @@ app.use(import_express2.default.urlencoded({ limit: "50mb", extended: true }));
 app.use("/api/webhooks", webhook_routes_default);
 app.use(
   "/api/trpc",
-  createExpressMiddleware({
-    router: appRouter,
-    createContext
-  })
+  createExpressMiddleware({ router: appRouter, createContext })
 );
-var api_handler_default = app;
+function handler(req, res) {
+  return app(req, res);
+}
 /*! Bundled license information:
 
 @trpc/server/dist/resolveResponse-CdASWfAV.mjs:
