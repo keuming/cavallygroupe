@@ -38726,6 +38726,14 @@ var webhook_routes_default = router2;
 var app = (0, import_express2.default)();
 app.use(import_express2.default.json({ limit: "50mb" }));
 app.use(import_express2.default.urlencoded({ limit: "50mb", extended: true }));
+app.get("/api/debug", (_req, res) => {
+  res.json({
+    hasDb: !!process.env.DATABASE_URL,
+    dbPrefix: process.env.DATABASE_URL?.substring(0, 30) ?? "MISSING",
+    nodeEnv: process.env.NODE_ENV,
+    hasJwt: !!process.env.JWT_SECRET
+  });
+});
 app.use("/api/webhooks", webhook_routes_default);
 app.use("/api/trpc", createExpressMiddleware({ router: appRouter, createContext }));
 function handler(req, res) {
