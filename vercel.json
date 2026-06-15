@@ -1,9 +1,9 @@
 {
-  "buildCommand": "npm run build && npx esbuild api/index.ts --bundle --platform=node --format=esm --outfile=api/index.mjs --external:@neondatabase/serverless",
+  "buildCommand": "npm run build",
   "outputDirectory": "dist/public",
   "framework": null,
   "functions": {
-    "api/index.mjs": {
+    "api/index.js": {
       "memory": 1024,
       "maxDuration": 30
     }
