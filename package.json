@@ -12,7 +12,9 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "db:push": "drizzle-kit generate && drizzle-kit migrate",
-    "build:frontend": "vite build"
+    "build:frontend": "vite build",
+    "bundle:api": "esbuild server/api-handler.ts --bundle --platform=node --format=cjs --outfile=api/index.js --external:bcryptjs --external:express --external:cookie --external:stripe --external:nodemailer --external:axios --external:@aws-sdk/client-s3 --external:@aws-sdk/s3-request-presigner",
+    "deploy": "npm run bundle:api && git add api/index.js && git commit -m \"Deploy: rebundle API\" && git push"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.693.0",
