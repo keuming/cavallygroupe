@@ -37,6 +37,7 @@ export default function AdminDashboard() {
   const { data: products } = trpc.admin.listProducts.useQuery({});
   const { data: orders } = trpc.admin.listOrders.useQuery({});
   const { data: lowStockProducts } = trpc.admin.getLowStockProducts.useQuery({ threshold: 10 });
+  const { data: categories } = trpc.categories.list.useQuery();
 
   const addProductMutation = trpc.admin.createProduct.useMutation({
     onSuccess: () => {
@@ -89,17 +90,10 @@ export default function AdminDashboard() {
     }
 
     try {
-      // Map category name to ID
-      const categoryMap: Record<string, number> = {
-        "Manuels Scolaires": 1,
-        "Manuels Universitaires": 2,
-        "Oeuvres Littéraires": 3,
-      };
-
       await addProductMutation.mutateAsync({
         title: formData.title,
         author: formData.author,
-        categoryId: categoryMap[formData.category] || 1,
+        categoryId: parseInt(formData.category) || 1,
         price: formData.price,
         stock: parseInt(formData.stock),
         description: formData.description,
@@ -609,9 +603,9 @@ export default function AdminDashboard() {
                   <SelectValue placeholder="Sélectionner une catégorie" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Manuels Scolaires">Manuels Scolaires</SelectItem>
-                  <SelectItem value="Manuels Universitaires">Manuels Universitaires</SelectItem>
-                  <SelectItem value="Oeuvres Littéraires">Oeuvres Littéraires</SelectItem>
+                  {categories?.map((cat: any) => (
+                    <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
