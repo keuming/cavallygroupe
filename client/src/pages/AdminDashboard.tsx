@@ -304,6 +304,32 @@ export default function AdminDashboard() {
               </div>
             </div>
 
+            {/* Clients Section */}
+            <div>
+              <h3 className="font-bold text-lg text-[#005f8a] mb-4 flex items-center gap-2">
+                <BookOpen className="w-5 h-5" />
+                Clients
+              </h3>
+              <div className="space-y-2">
+                <button
+                  onClick={() => setActiveTab("users")}
+                  className={`w-full text-left px-4 py-2 rounded-lg transition-all ${
+                    activeTab === "users"
+                      ? "bg-[#005f8a] text-white"
+                      : "hover:bg-gray-100 text-gray-700"
+                  }`}
+                >
+                  🧑‍🤝‍🧑 Liste des Clients
+                </button>
+                <button
+                  onClick={() => setActiveTab("users")}
+                  className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-700 transition-all"
+                >
+                  📊 Monitoring
+                </button>
+              </div>
+            </div>
+
             {/* Outils Marketing */}
             <div>
               <h3 className="font-bold text-lg text-[#005f8a] mb-4 flex items-center gap-2">
