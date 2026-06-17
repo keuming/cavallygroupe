@@ -139,7 +139,7 @@ export default function Checkout() {
               <p className="text-gray-600 mb-8">Veuillez vous connecter pour continuer vers le checkout</p>
             </div>
             <Button
-              onClick={() => (window.location.href = getLoginUrl())}
+              onClick={() => (window.location.href = "/login")}
               className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white py-6 text-lg font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all"
             >
               Se connecter
