@@ -174,18 +174,6 @@ export default function Home() {
                   </>
                 )}
               </div>
-              {!isAuthenticated && (
-                <Button
-                  size="sm"
-                  onClick={() => navigate("/login")}
-                  className="bg-gradient-to-r from-[#005f8a] to-[#0080b8] hover:shadow-lg text-white shadow-md transition-all hidden sm:flex items-center gap-1 font-semibold"
-                  title="Espace Client - Suivi des commandes"
-                >
-                  <Lock className="w-3 sm:w-4 h-3 sm:h-4" />
-                  <span className="hidden md:inline">ESPACE CLIENT</span>
-                  <ChevronDown className="w-3 h-3" />
-                </Button>
-              )}
               {isAuthenticated && (
                 <Button
                   size="sm"
@@ -195,7 +183,6 @@ export default function Home() {
                 >
                   <Lock className="w-3 sm:w-4 h-3 sm:h-4" />
                   <span className="hidden md:inline">ESPACE CLIENT</span>
-                  <ChevronDown className="w-3 h-3" />
                 </Button>
               )}
               {isAuthenticated ? (
@@ -211,14 +198,14 @@ export default function Home() {
                   <Button
                     size="sm"
                     onClick={() => navigate("/login")}
-                    className="bg-yellow-500 hover:bg-yellow-600 text-white shadow-md hover:shadow-lg transition-all text-xs sm:text-sm"
+                    className="bg-[#005f8a] hover:bg-[#004a6b] text-white shadow-md hover:shadow-lg transition-all text-xs sm:text-sm"
                   >
                     Connexion
                   </Button>
                   <Button
                     size="sm"
                     onClick={() => navigate("/register")}
-                    className="bg-white border border-[#005f8a] text-[#005f8a] hover:bg-blue-50 shadow-md hover:shadow-lg transition-all text-xs sm:text-sm font-semibold"
+                    className="bg-white border border-[#005f8a] text-[#005f8a] hover:bg-blue-50 shadow-md hover:shadow-lg transition-all text-xs sm:text-sm font-semibold hidden sm:flex"
                   >
                     Créer un compte
                   </Button>
