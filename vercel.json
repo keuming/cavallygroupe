@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build:frontend",
+  "buildCommand": "pnpm run build:frontend",
   "outputDirectory": "dist/public",
   "framework": null,
   "functions": {
@@ -11,13 +11,24 @@
   "redirects": [
     {
       "source": "/",
-      "has": [{ "type": "host", "value": "dashboard.cavallygroupe.com" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "dashboard.cavallygroupe.com"
+        }
+      ],
       "destination": "/admin",
       "permanent": false
     }
   ],
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/api/(.*)",
+      "destination": "/api"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }
