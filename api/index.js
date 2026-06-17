@@ -36312,6 +36312,7 @@ var adminRouter = router({
     try {
       const totalProducts = await db.select().from(products);
       const totalOrders = await db.select().from(orders);
+      const totalUsersResult = await db.select().from(users).where(eq(users.role, "user"));
       const totalRevenue = totalOrders.reduce((sum, order) => {
         return sum + (parseFloat(order.totalAmount) || 0);
       }, 0);
@@ -36321,6 +36322,7 @@ var adminRouter = router({
         totalOrders: totalOrders.length,
         totalRevenue,
         lowStockProducts: lowStockProducts.length,
+        totalUsers: totalUsersResult.length,
         recentOrders: totalOrders.slice(-5).reverse()
       };
     } catch (error51) {

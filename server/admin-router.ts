@@ -2,7 +2,7 @@ import { protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "./db";
-import { products, categories, orders, orderItems } from "../drizzle/schema";
+import { products, categories, orders, orderItems, users } from "../drizzle/schema";
 import { eq, desc, and } from "drizzle-orm";
 import { getAllUsers, getPendingUsers, approveUser, rejectUser, disableUser, enableUser, updateUserRole, getApprovedUsersCount, getPendingUsersCount } from "./db";
 
@@ -26,6 +26,7 @@ export const adminRouter = router({
     try {
       const totalProducts = await db.select().from(products);
       const totalOrders = await db.select().from(orders);
+      const totalUsersResult = await db.select().from(users).where(eq(users.role, "user"));
       const totalRevenue = totalOrders.reduce((sum, order) => {
         return sum + (parseFloat(order.totalAmount) || 0);
       }, 0);
@@ -37,6 +38,7 @@ export const adminRouter = router({
         totalOrders: totalOrders.length,
         totalRevenue,
         lowStockProducts: lowStockProducts.length,
+        totalUsers: totalUsersResult.length,
         recentOrders: totalOrders.slice(-5).reverse(),
       };
     } catch (error) {
