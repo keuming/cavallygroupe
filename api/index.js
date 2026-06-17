@@ -12785,6 +12785,11 @@ var UNAUTHED_ERR_MSG = "Please login (10001)";
 var NOT_ADMIN_ERR_MSG = "You do not have required permission (10002)";
 
 // server/_core/cookies.ts
+var LOCAL_HOSTS = /* @__PURE__ */ new Set(["localhost", "127.0.0.1", "::1"]);
+function isIpAddress(host) {
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return true;
+  return host.includes(":");
+}
 function isSecureRequest(req) {
   if (req.protocol === "https") return true;
   const forwardedProto = req.headers["x-forwarded-proto"];
@@ -12792,12 +12797,21 @@ function isSecureRequest(req) {
   const protoList = Array.isArray(forwardedProto) ? forwardedProto : forwardedProto.split(",");
   return protoList.some((proto) => proto.trim().toLowerCase() === "https");
 }
+function getRootDomain(hostname3) {
+  if (!hostname3 || LOCAL_HOSTS.has(hostname3) || isIpAddress(hostname3)) return void 0;
+  if (hostname3.endsWith(".vercel.app")) return void 0;
+  const parts = hostname3.split(".");
+  if (parts.length >= 2) return "." + parts.slice(-2).join(".");
+  return void 0;
+}
 function getSessionCookieOptions(req) {
+  const domain2 = getRootDomain(req.hostname);
   return {
     httpOnly: true,
     path: "/",
     sameSite: "lax",
-    secure: isSecureRequest(req)
+    secure: isSecureRequest(req),
+    ...domain2 ? { domain: domain2 } : {}
   };
 }
 
