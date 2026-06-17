@@ -98,6 +98,8 @@ export default function AdminProductsManagement() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState<"idle" | "reading" | "uploading" | "done" | "error">("idle");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isAuthenticated || user?.role !== "admin") {
@@ -152,53 +154,100 @@ export default function AdminProductsManagement() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Vérification type
     if (!file.type.startsWith("image/")) {
       setError("Seules les images sont acceptées (JPG, PNG, WebP)");
       return;
     }
-    // Vérification taille (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       setError("L'image ne doit pas dépasser 5 MB");
       return;
     }
 
-    setImageFile(file);
     setError(null);
+    setUploadStatus("reading");
+    setUploadProgress(0);
 
-    // Prévisualisation locale
+    // Lire le fichier et définir preview + file en même temps dans le callback
     const reader = new FileReader();
-    reader.onload = (ev) => setImagePreview(ev.target?.result as string);
+    reader.onloadstart = () => setUploadProgress(10);
+    reader.onprogress = (ev) => {
+      if (ev.lengthComputable) {
+        setUploadProgress(Math.round((ev.loaded / ev.total) * 40) + 10);
+      }
+    };
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      // Mettre à jour file ET preview en même temps pour éviter la désynchronisation
+      setImageFile(file);
+      setImagePreview(dataUrl);
+      setUploadProgress(50);
+      setUploadStatus("idle");
+    };
+    reader.onerror = () => {
+      setError("Erreur lors de la lecture du fichier");
+      setUploadStatus("error");
+    };
     reader.readAsDataURL(file);
   };
 
   const handleRemoveImage = () => {
     setImageFile(null);
     setImagePreview(null);
+    setUploadProgress(0);
+    setUploadStatus("idle");
     setFormData((prev) => ({ ...prev, coverImageUrl: "" }));
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // Upload vers S3 via presigned URL
+  // Upload vers S3 via presigned URL avec progression réelle
   const uploadImageToS3 = async (file: File): Promise<string> => {
     setIsUploadingImage(true);
+    setUploadStatus("uploading");
+    setUploadProgress(50);
+
     try {
       const { uploadUrl, publicUrl } = await getUploadUrlMutation.mutateAsync({
         fileName: file.name,
         fileType: file.type,
       });
 
-      const response = await fetch(uploadUrl, {
-        method: "PUT",
-        body: file,
-        headers: { "Content-Type": file.type },
+      setUploadProgress(60);
+
+      // Utiliser XMLHttpRequest pour avoir la progression réelle
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+
+        xhr.upload.addEventListener("progress", (ev) => {
+          if (ev.lengthComputable) {
+            // Progression de 60% à 95%
+            const pct = Math.round((ev.loaded / ev.total) * 35) + 60;
+            setUploadProgress(pct);
+          }
+        });
+
+        xhr.addEventListener("load", () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            setUploadProgress(100);
+            setUploadStatus("done");
+            resolve();
+          } else {
+            reject(new Error(`Upload S3 échoué: ${xhr.status}`));
+          }
+        });
+
+        xhr.addEventListener("error", () => reject(new Error("Erreur réseau lors de l'upload")));
+        xhr.addEventListener("abort", () => reject(new Error("Upload annulé")));
+
+        xhr.open("PUT", uploadUrl);
+        xhr.setRequestHeader("Content-Type", file.type);
+        xhr.send(file);
       });
 
-      if (!response.ok) {
-        throw new Error(`Upload S3 échoué: ${response.status}`);
-      }
-
       return publicUrl;
+    } catch (err) {
+      setUploadStatus("error");
+      setUploadProgress(0);
+      throw err;
     } finally {
       setIsUploadingImage(false);
     }
@@ -239,6 +288,8 @@ export default function AdminProductsManagement() {
     setFormData(EMPTY_FORM);
     setImageFile(null);
     setImagePreview(null);
+    setUploadProgress(0);
+    setUploadStatus("idle");
     setError(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -509,29 +560,107 @@ export default function AdminProductsManagement() {
                 Image de couverture
               </label>
 
+              {/* Zone principale : preview OU dropzone */}
               {imagePreview ? (
-                <div className="relative inline-block">
-                  <img
-                    src={imagePreview}
-                    alt="Prévisualisation"
-                    className="h-40 w-32 object-cover rounded-lg border border-slate-200 shadow-sm"
-                  />
+                <div className="space-y-3">
+                  <div className="relative inline-block">
+                    <img
+                      src={imagePreview}
+                      alt="Prévisualisation"
+                      className="h-40 w-32 object-cover rounded-lg border border-slate-200 shadow-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 shadow"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+
+                  {/* Barre de progression (visible pendant upload S3) */}
+                  {isUploadingImage && (
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs text-gray-600">
+                        <span>
+                          {uploadStatus === "uploading" ? "Upload vers S3 en cours..." : "Traitement..."}
+                        </span>
+                        <span className="font-bold text-[#005f8a]">{uploadProgress}%</span>
+                      </div>
+                      <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                        <div
+                          className="h-2 rounded-full transition-all duration-300 ease-out"
+                          style={{
+                            width: `${uploadProgress}%`,
+                            background: uploadProgress === 100
+                              ? "#16a34a"
+                              : "linear-gradient(90deg, #005f8a, #0284c7)",
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Confirmation upload terminé */}
+                  {uploadStatus === "done" && !isUploadingImage && (
+                    <p className="text-xs text-green-600 font-medium flex items-center gap-1">
+                      <span>✓</span> Image uploadée sur S3 avec succès
+                    </p>
+                  )}
+
+                  {/* Nom du fichier */}
+                  {imageFile && !isUploadingImage && uploadStatus !== "done" && (
+                    <p className="text-xs text-gray-500 truncate max-w-xs">
+                      📎 {imageFile.name} ({(imageFile.size / 1024).toFixed(0)} KB)
+                    </p>
+                  )}
+
+                  {/* Changer l'image */}
                   <button
                     type="button"
-                    onClick={handleRemoveImage}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-xs text-[#005f8a] hover:underline"
                   >
-                    <X className="w-3 h-3" />
+                    Changer l'image
                   </button>
                 </div>
               ) : (
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center cursor-pointer hover:border-[#005f8a] hover:bg-blue-50 transition-colors"
-                >
-                  <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-gray-700">Cliquer pour choisir une image</p>
-                  <p className="text-xs text-gray-500 mt-1">JPG, PNG, WebP — max 5 MB</p>
+                <div className="space-y-2">
+                  {/* Zone de dépôt */}
+                  {uploadStatus === "reading" ? (
+                    <div className="border-2 border-dashed border-blue-300 rounded-lg p-6 text-center bg-blue-50">
+                      <Loader2 className="w-8 h-8 text-blue-500 mx-auto mb-2 animate-spin" />
+                      <p className="text-sm font-medium text-blue-700">Chargement de l'image...</p>
+                      <div className="w-full bg-blue-200 rounded-full h-1.5 mt-3 overflow-hidden">
+                        <div
+                          className="h-1.5 rounded-full bg-blue-500 transition-all duration-300"
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center cursor-pointer hover:border-[#005f8a] hover:bg-blue-50 transition-colors"
+                    >
+                      <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                      <p className="text-sm font-medium text-gray-700">Cliquer pour choisir une image</p>
+                      <p className="text-xs text-gray-500 mt-1">JPG, PNG, WebP — max 5 MB</p>
+                    </div>
+                  )}
+
+                  {/* URL directe */}
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Ou saisir une URL directement :</p>
+                    <Input
+                      name="coverImageUrl"
+                      type="url"
+                      value={formData.coverImageUrl}
+                      onChange={handleFormChange}
+                      placeholder="https://exemple.com/image.jpg"
+                      className="text-sm"
+                    />
+                  </div>
                 </div>
               )}
 
@@ -542,27 +671,6 @@ export default function AdminProductsManagement() {
                 onChange={handleImageSelect}
                 className="hidden"
               />
-
-              {!imagePreview && (
-                <div className="mt-2">
-                  <p className="text-xs text-gray-500 mb-1">Ou saisir une URL directement :</p>
-                  <Input
-                    name="coverImageUrl"
-                    type="url"
-                    value={formData.coverImageUrl}
-                    onChange={handleFormChange}
-                    placeholder="https://exemple.com/image.jpg"
-                    className="text-sm"
-                  />
-                </div>
-              )}
-
-              {!import.meta.env.VITE_S3_CONFIGURED && (
-                <p className="text-xs text-amber-600 mt-1">
-                  ⚠️ S3 non configuré — l'upload de fichier nécessite les variables S3 sur Vercel.
-                  Vous pouvez utiliser une URL directe en attendant.
-                </p>
-              )}
             </div>
 
             {/* Titre */}
