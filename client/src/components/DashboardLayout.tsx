@@ -75,18 +75,26 @@ export default function DashboardLayout({
             <p className={`text-sm text-center max-w-sm transition-colors duration-300 ${
               isDarkMode ? 'text-gray-400' : 'text-gray-600'
             }`}>
-              Access to this dashboard requires authentication. Continue to launch the login flow.
+              Connectez-vous pour accéder au dashboard.
             </p>
           </div>
-          <Button
-            onClick={() => {
-              window.location.href = getLoginUrl();
-            }}
-            size="lg"
-            className="w-full shadow-lg hover:shadow-xl transition-all"
-          >
-            Sign in
-          </Button>
+          <div className="flex flex-col gap-3 w-full">
+            <Button
+              onClick={() => { window.location.href = "/login"; }}
+              size="lg"
+              className="w-full shadow-lg hover:shadow-xl transition-all bg-[#005f8a] hover:bg-[#004a6b] text-white"
+            >
+              Se connecter
+            </Button>
+            <Button
+              onClick={() => { window.location.href = "/register"; }}
+              size="lg"
+              variant="outline"
+              className="w-full border-[#005f8a] text-[#005f8a] hover:bg-blue-50"
+            >
+              Créer un compte
+            </Button>
+          </div>
         </div>
       </div>
     );

@@ -177,7 +177,7 @@ export default function Home() {
               {!isAuthenticated && (
                 <Button
                   size="sm"
-                  onClick={() => (window.location.href = getLoginUrl())}
+                  onClick={() => navigate("/login")}
                   className="bg-gradient-to-r from-[#005f8a] to-[#0080b8] hover:shadow-lg text-white shadow-md transition-all hidden sm:flex items-center gap-1 font-semibold"
                   title="Espace Client - Suivi des commandes"
                 >
@@ -207,13 +207,22 @@ export default function Home() {
                   {user?.name ? user.name.split(' ')[0] : "Compte"}
                 </Button>
               ) : (
-                <Button
-                  size="sm"
-                  onClick={() => (window.location.href = getLoginUrl())}
-                  className="bg-yellow-500 hover:bg-yellow-600 text-white shadow-md hover:shadow-lg transition-all text-xs sm:text-sm"
-                >
-                  Connexion
-                </Button>
+                <div className="relative flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => navigate("/login")}
+                    className="bg-yellow-500 hover:bg-yellow-600 text-white shadow-md hover:shadow-lg transition-all text-xs sm:text-sm"
+                  >
+                    Connexion
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => navigate("/register")}
+                    className="bg-white border border-[#005f8a] text-[#005f8a] hover:bg-blue-50 shadow-md hover:shadow-lg transition-all text-xs sm:text-sm font-semibold"
+                  >
+                    Créer un compte
+                  </Button>
+                </div>
               )}
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
