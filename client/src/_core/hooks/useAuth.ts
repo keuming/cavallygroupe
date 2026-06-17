@@ -13,9 +13,15 @@ export function useAuth(options?: UseAuthOptions) {
     options ?? {};
   const utils = trpc.useUtils();
 
+  // Vérifier si un token existe dans localStorage (auth locale)
+  const hasLocalToken = typeof window !== "undefined" && 
+    Boolean(localStorage.getItem("cavally_token"));
+
   const meQuery = trpc.auth.me.useQuery(undefined, {
     retry: false,
     refetchOnWindowFocus: false,
+    // Ne pas bloquer si on a un token local - laisser la requête passer
+    enabled: true,
   });
 
   const logoutMutation = trpc.auth.logout.useMutation({
@@ -46,7 +52,7 @@ export function useAuth(options?: UseAuthOptions) {
       user: meQuery.data ?? null,
       loading: meQuery.isLoading || logoutMutation.isPending,
       error: meQuery.error ?? logoutMutation.error ?? null,
-      isAuthenticated: Boolean(meQuery.data),
+      isAuthenticated: Boolean(meQuery.data) || (hasLocalToken && !meQuery.isError),
     };
   }, [
     meQuery.data,
