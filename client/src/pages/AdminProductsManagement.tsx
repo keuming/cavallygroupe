@@ -101,6 +101,9 @@ export default function AdminProductsManagement() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadStatus, setUploadStatus] = useState<"idle" | "reading" | "uploading" | "done" | "error">("idle");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Ref stable pour conserver le preview même pendant les re-renders du Dialog
+  const imagePreviewRef = useRef<string | null>(null);
+  const imageFileRef = useRef<File | null>(null);
 
   if (!isAuthenticated || user?.role !== "admin") {
     return (
@@ -177,7 +180,10 @@ export default function AdminProductsManagement() {
     };
     reader.onload = (ev) => {
       const dataUrl = ev.target?.result as string;
-      // Mettre à jour file ET preview en même temps pour éviter la désynchronisation
+      // Stocker dans le ref D'ABORD (stable, pas affecté par les re-renders)
+      imagePreviewRef.current = dataUrl;
+      imageFileRef.current = file;
+      // Puis mettre à jour le state pour déclencher le re-render
       setImageFile(file);
       setImagePreview(dataUrl);
       setUploadProgress(50);
@@ -191,6 +197,8 @@ export default function AdminProductsManagement() {
   };
 
   const handleRemoveImage = () => {
+    imagePreviewRef.current = null;
+    imageFileRef.current = null;
     setImageFile(null);
     setImagePreview(null);
     setUploadProgress(0);
@@ -286,6 +294,8 @@ export default function AdminProductsManagement() {
     setIsDialogOpen(false);
     setEditingProduct(null);
     setFormData(EMPTY_FORM);
+    imagePreviewRef.current = null;
+    imageFileRef.current = null;
     setImageFile(null);
     setImagePreview(null);
     setUploadProgress(0);
@@ -543,7 +553,18 @@ export default function AdminProductsManagement() {
       </div>
 
       {/* Dialog Création / Édition */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog
+        open={isDialogOpen}
+        onOpenChange={(open) => {
+          // Ne fermer le dialog que si l'utilisateur clique explicitement Annuler
+          // Ignorer les fermetures déclenchées par le file picker natif
+          if (!open && !imageFileRef.current) {
+            handleCloseDialog();
+          } else if (!open && imageFileRef.current) {
+            // Le file picker vient de se fermer — ne pas fermer le Dialog
+          }
+        }}
+      >
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold text-gray-900">
@@ -561,11 +582,11 @@ export default function AdminProductsManagement() {
               </label>
 
               {/* Zone principale : preview OU dropzone */}
-              {imagePreview ? (
+              {(imagePreview || imagePreviewRef.current) ? (
                 <div className="space-y-3">
                   <div className="relative inline-block">
                     <img
-                      src={imagePreview}
+                      src={imagePreview || imagePreviewRef.current || ""}
                       alt="Prévisualisation"
                       className="h-40 w-32 object-cover rounded-lg border border-slate-200 shadow-sm"
                     />
