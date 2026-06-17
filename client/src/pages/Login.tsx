@@ -16,7 +16,11 @@ export default function Login() {
 
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: async (data: any) => {
-      if (data?.token) localStorage.setItem("cavally_token", data.token);
+      if (data?.token) {
+        localStorage.setItem("cavally_token", data.token);
+        // Attendre que localStorage soit persisté avant le rechargement
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
       window.location.href = "/";
     },
     onError: (err: any) => {
