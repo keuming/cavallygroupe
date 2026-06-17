@@ -389,7 +389,7 @@ export default function Home() {
 
             <div className="mt-8 pt-6 border-t border-gray-200">
               <Button
-                onClick={() => navigate("/supply-list-upload")}
+                onClick={() => navigate("/quick-order")}
                 className="w-full bg-gradient-to-r from-[#FFC107] to-[#FFA000] hover:from-blue-600 hover:to-blue-700 text-white shadow-md hover:shadow-lg transition-all"
               >
                 <Upload className="w-4 h-4 mr-2" />
