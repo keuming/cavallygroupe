@@ -7,6 +7,7 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { createCheckoutSession } from "./stripe";
 import { mobileMoneyRouter } from "./mobile-money-router";
+
 import { paymentsRouter } from "./payments-router";
 import { smsRouter } from "./sms-router";
 import { adminRouter } from "./admin-router";
@@ -82,7 +83,7 @@ import {
   getUserByEmail,
   createUserWithPassword,
   updateUserLastSignedIn,
-  getDb,
+  getDb,n  getAllEducationLevels,n  getEducationClassesByLevel,
 } from "./db";
 import type { InsertReview } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
@@ -177,7 +178,7 @@ export const appRouter = router({
   }),
 
   // CATEGORIES
-  categories: router({
+  education: router({n    getLevels: publicProcedure.query(async () => getAllEducationLevels()),n    getClasses: publicProceduren      .input(z.object({ levelId: z.number() }))n      .query(async ({ input }) => getEducationClassesByLevel(input.levelId)),n  }),nn  categories: router({
     list: publicProcedure.query(async () => {
       return getAllCategories();
     }),
@@ -190,6 +191,23 @@ export const appRouter = router({
 
   // PRODUCTS
   products: router({
+    getUploadUrl: protectedProcedure
+      .input(z.object({ fileName: z.string(), fileType: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "UNAUTHORIZED", message: "Admin only" });
+        const { nanoid } = await import("nanoid");
+        const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
+        const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
+        const { ENV } = await import("./_core/env");
+        if (!ENV.s3Bucket) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "S3 non configuré" });
+        const ext = input.fileName.split(".").pop() ?? "jpg";
+        const key = `products/${nanoid()}.${ext}`;
+        const client = new S3Client({ region: ENV.s3Region, credentials: { accessKeyId: ENV.s3AccessKeyId, secretAccessKey: ENV.s3SecretAccessKey } });
+        const cmd = new PutObjectCommand({ Bucket: ENV.s3Bucket, Key: key, ContentType: input.fileType });
+        const uploadUrl = await getSignedUrl(client, cmd, { expiresIn: 300 });
+        const base = ENV.s3PublicUrl ? ENV.s3PublicUrl.replace(/\/$/, "") : `https://${ENV.s3Bucket}.s3.${ENV.s3Region}.amazonaws.com`;
+        return { uploadUrl, publicUrl: `${base}/${key}`, key };
+      }),
     list: publicProcedure
       .input(
         z.object({

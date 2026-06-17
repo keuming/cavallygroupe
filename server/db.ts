@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
-import { InsertUser, users, categories, products, cartItems, carts, orders, orderItems, paymentTransactions, orderTracking, reviews, InsertOrder, productGalleryImages, recruitmentApplications, tutors, supplyLists, conversations, messages, InsertConversation, InsertMessage } from "../drizzle/schema";
+import { InsertUser, users, categories, products, cartItems, carts, orders, orderItems, paymentTransactions, orderTracking, reviews, InsertOrder, productGalleryImages, recruitmentApplications, tutors, supplyLists, conversations, messages, InsertConversation, InsertMessage, educationLevels, educationClasses } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import type { InsertOrderItem, InsertPaymentTransaction, InsertOrderTracking, InsertReview, InsertRecruitmentApplication, InsertTutor } from "../drizzle/schema";
 import { eq, and, or, like, gte, lte, gt, desc, asc, sql, inArray } from "drizzle-orm";
@@ -241,6 +241,21 @@ export async function getProductsByCategory(categoryId: number, limit?: number, 
   if (limit) query = query.limit(limit);
   if (offset) query = query.offset(offset);
   return query;
+}
+
+
+export async function getAllEducationLevels() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(educationLevels).where(eq(educationLevels.isActive, true)).orderBy(educationLevels.displayOrder);
+}
+
+export async function getEducationClassesByLevel(levelId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(educationClasses)
+    .where(and(eq(educationClasses.educationLevelId, levelId), eq(educationClasses.isActive, true)))
+    .orderBy(educationClasses.displayOrder);
 }
 
 export async function getProductsByEducationLevel(educationLevelId: number, limit?: number, offset?: number) {
