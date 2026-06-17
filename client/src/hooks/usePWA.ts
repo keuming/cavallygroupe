@@ -13,21 +13,7 @@ export function usePWA() {
 
   useEffect(() => {
     // Enregistrer le Service Worker
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker
-        .register('/service-worker.js')
-        .then((registration) => {
-          console.log('[PWA] Service Worker enregistré:', registration);
-          // Vérifier les mises à jour
-          registration.addEventListener('updatefound', () => {
-            const newWorker = registration.installing;
-            if (newWorker) {
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  console.log('[PWA] Nouvelle version disponible');
-                  // Notifier l'utilisateur qu'une mise à jour est disponible
-                  window.dispatchEvent(new CustomEvent('pwa-update-available'));
-                }
+    // Service Worker désactivé
               });
             }
           });
