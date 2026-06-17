@@ -95,6 +95,7 @@ export async function createUserWithPassword(data: {
   email: string;
   name: string;
   passwordHash: string;
+  phone?: string;
   role?: "user" | "admin";
   userType?: "client" | "vendor";
 }) {
@@ -113,6 +114,7 @@ export async function createUserWithPassword(data: {
     loginMethod: "password",
     role: data.role ?? (data.email === ENV.ownerOpenId ? "admin" : "user"),
     userType: data.userType ?? "client",
+    phone: data.phone,
     isApproved: data.userType === "vendor" ? false : true,
     lastSignedIn: new Date(),
   }).returning();

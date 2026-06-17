@@ -19892,6 +19892,7 @@ async function createUserWithPassword(data) {
     loginMethod: "password",
     role: data.role ?? (data.email === ENV.ownerOpenId ? "admin" : "user"),
     userType: data.userType ?? "client",
+    phone: data.phone,
     isApproved: data.userType === "vendor" ? false : true,
     lastSignedIn: /* @__PURE__ */ new Date()
   }).returning();
@@ -38072,6 +38073,7 @@ var appRouter = router({
       name: external_exports.string().min(2),
       email: external_exports.string().email(),
       password: external_exports.string().min(8),
+      phone: external_exports.string().optional(),
       userType: external_exports.enum(["client", "vendor"]).optional()
     })).mutation(async ({ ctx, input }) => {
       const bcrypt = await import("bcryptjs");
@@ -38084,6 +38086,7 @@ var appRouter = router({
         email: input.email,
         name: input.name,
         passwordHash,
+        phone: input.phone,
         userType: input.userType
       });
       const token = await createSessionToken({ userId: user.id, openId: user.openId });

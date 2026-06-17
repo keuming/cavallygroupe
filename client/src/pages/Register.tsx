@@ -12,6 +12,7 @@ export default function Register() {
   const utils = trpc.useUtils();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -32,7 +33,7 @@ export default function Register() {
       setError("Le mot de passe doit contenir au moins 8 caractères.");
       return;
     }
-    registerMutation.mutate({ name, email, password });
+    registerMutation.mutate({ name, email, password, phone: phone || undefined });
   };
 
   return (
@@ -70,6 +71,16 @@ export default function Register() {
                 onChange={e => setEmail(e.target.value)}
                 placeholder="vous@exemple.com"
                 required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Numéro de téléphone</Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={phone}
+                onChange={e => setPhone(e.target.value)}
+                placeholder="+225 07 00 00 00 00"
               />
             </div>
             <div className="space-y-2">

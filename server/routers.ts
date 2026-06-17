@@ -111,6 +111,7 @@ export const appRouter = router({
         name: z.string().min(2),
         email: z.string().email(),
         password: z.string().min(8),
+        phone: z.string().optional(),
         userType: z.enum(["client", "vendor"]).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
@@ -125,6 +126,7 @@ export const appRouter = router({
           email: input.email,
           name: input.name,
           passwordHash,
+          phone: input.phone,
           userType: input.userType,
         });
 
