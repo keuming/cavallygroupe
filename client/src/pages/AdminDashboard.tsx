@@ -50,38 +50,35 @@ export default function AdminDashboard() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Simulate upload progress
-    setUploadProgress(0);
+    setUploadProgress(10);
+
     const interval = setInterval(() => {
       setUploadProgress((prev) => {
-        if (prev >= 90) {
-          clearInterval(interval);
-          return prev;
-        }
-        return prev + Math.random() * 30;
+        if (prev >= 85) { clearInterval(interval); return prev; }
+        return Math.min(prev + Math.random() * 20, 85);
       });
-    }, 200);
+    }, 150);
 
     try {
-      // Convert file to base64 for upload
       const reader = new FileReader();
-      reader.onload = async (event) => {
+      reader.onload = (event) => {
         const base64 = event.target?.result as string;
-        
-        // Simulate upload completion
         clearInterval(interval);
         setUploadProgress(100);
-        
-        // Set the image URL (in production, this would be uploaded to S3)
-        setFormData({ ...formData, imageUrl: base64 });
-        
-        // Reset progress after 2 seconds
-        setTimeout(() => setUploadProgress(0), 2000);
+        // Utiliser le callback fonctionnel pour éviter la closure périmée
+        setFormData((prev) => ({ ...prev, imageUrl: base64 }));
+        // NE PAS remettre uploadProgress à 0 — ça fait disparaître le preview
+      };
+      reader.onerror = () => {
+        clearInterval(interval);
+        setUploadProgress(0);
+        console.error("Erreur lecture fichier");
       };
       reader.readAsDataURL(file);
     } catch (error) {
-      console.error("Error uploading image:", error);
+      clearInterval(interval);
       setUploadProgress(0);
+      console.error("Error uploading image:", error);
     }
   };
 
@@ -654,39 +651,64 @@ export default function AdminDashboard() {
 
             <div>
               <label className="text-sm font-medium text-gray-900">Image du produit</label>
-              <div className="mt-2 border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-[#005f8a] transition-colors cursor-pointer">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleImageUpload(e)}
-                  className="hidden"
-                  id="image-upload"
-                />
-                <label htmlFor="image-upload" className="cursor-pointer block">
-                  <div className="text-gray-600">
-                    <p className="text-sm font-medium">Cliquez pour charger une image</p>
-                    <p className="text-xs text-gray-500 mt-1">ou glissez-déposez</p>
+
+              {/* Preview si image chargée */}
+              {formData.imageUrl ? (
+                <div className="mt-2 space-y-2">
+                  <div className="relative inline-block">
+                    <img
+                      src={formData.imageUrl}
+                      alt="Aperçu"
+                      className="h-40 w-32 object-cover rounded-lg border border-gray-200 shadow-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, imageUrl: "" }));
+                        setUploadProgress(0);
+                      }}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 text-xs"
+                    >
+                      ✕
+                    </button>
                   </div>
-                </label>
-              </div>
+                  <p className="text-xs text-green-600 font-medium">✓ Image chargée avec succès</p>
+                  <label htmlFor="image-upload" className="text-xs text-[#005f8a] cursor-pointer hover:underline block">
+                    Changer l'image
+                  </label>
+                </div>
+              ) : (
+                <div className="mt-2 border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-[#005f8a] transition-colors cursor-pointer">
+                  <label htmlFor="image-upload" className="cursor-pointer block">
+                    <div className="text-gray-600">
+                      <p className="text-sm font-medium">Cliquez pour charger une image</p>
+                      <p className="text-xs text-gray-500 mt-1">ou glissez-déposez</p>
+                    </div>
+                  </label>
+                </div>
+              )}
+
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleImageUpload(e)}
+                className="hidden"
+                id="image-upload"
+              />
+
+              {/* Barre de progression pendant le chargement */}
               {uploadProgress > 0 && uploadProgress < 100 && (
                 <div className="mt-3">
                   <div className="flex justify-between mb-1">
-                    <span className="text-xs font-medium text-gray-700">Chargement en cours</span>
-                    <span className="text-xs font-medium text-[#005f8a]">{uploadProgress}%</span>
+                    <span className="text-xs font-medium text-gray-700">Chargement en cours...</span>
+                    <span className="text-xs font-bold text-[#005f8a]">{Math.round(uploadProgress)}%</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                     <div
                       className="bg-gradient-to-r from-[#005f8a] to-[#ff8c42] h-2 rounded-full transition-all duration-300"
                       style={{ width: `${uploadProgress}%` }}
                     />
                   </div>
-                </div>
-              )}
-              {formData.imageUrl && uploadProgress === 100 && (
-                <div className="mt-3">
-                  <img src={formData.imageUrl} alt="Aperçu" className="w-full h-32 object-cover rounded-lg" />
-                  <p className="text-xs text-green-600 mt-2">✓ Image chargée avec succès</p>
                 </div>
               )}
             </div>
