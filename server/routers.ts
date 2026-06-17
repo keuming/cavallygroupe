@@ -83,7 +83,9 @@ import {
   getUserByEmail,
   createUserWithPassword,
   updateUserLastSignedIn,
-  getDb,n  getAllEducationLevels,n  getEducationClassesByLevel,
+  getDb,
+  getAllEducationLevels,
+  getEducationClassesByLevel,
 } from "./db";
 import type { InsertReview } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
@@ -178,7 +180,14 @@ export const appRouter = router({
   }),
 
   // CATEGORIES
-  education: router({n    getLevels: publicProcedure.query(async () => getAllEducationLevels()),n    getClasses: publicProceduren      .input(z.object({ levelId: z.number() }))n      .query(async ({ input }) => getEducationClassesByLevel(input.levelId)),n  }),nn  categories: router({
+  education: router({
+    getLevels: publicProcedure.query(async () => getAllEducationLevels()),
+    getClasses: publicProcedure
+      .input(z.object({ levelId: z.number() }))
+      .query(async ({ input }) => getEducationClassesByLevel(input.levelId)),
+  }),
+
+  categories: router({
     list: publicProcedure.query(async () => {
       return getAllCategories();
     }),

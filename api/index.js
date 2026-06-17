@@ -8514,6 +8514,30 @@ var init_schema2 = __esm({
   }
 });
 
+// server/_core/env.ts
+var env_exports = {};
+__export(env_exports, {
+  ENV: () => ENV
+});
+var ENV;
+var init_env = __esm({
+  "server/_core/env.ts"() {
+    "use strict";
+    ENV = {
+      cookieSecret: process.env.JWT_SECRET ?? "",
+      databaseUrl: process.env.DATABASE_URL ?? "",
+      ownerOpenId: process.env.OWNER_EMAIL ?? "",
+      isProduction: process.env.NODE_ENV === "production",
+      anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? "",
+      s3Bucket: process.env.S3_BUCKET_NAME ?? "",
+      s3Region: process.env.AWS_REGION ?? "us-east-1",
+      s3AccessKeyId: process.env.AWS_ACCESS_KEY_ID ?? "",
+      s3SecretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? "",
+      s3PublicUrl: process.env.S3_PUBLIC_URL ?? ""
+    };
+  }
+});
+
 // node_modules/superjson/dist/double-indexed-kv.js
 var require_double_indexed_kv = __commonJS({
   "node_modules/superjson/dist/double-indexed-kv.js"(exports2) {
@@ -9843,6 +9867,93 @@ var require_dist = __commonJS({
     exports2.registerCustom = SuperJSON.registerCustom;
     exports2.registerSymbol = SuperJSON.registerSymbol;
     exports2.allowErrorProps = SuperJSON.allowErrorProps;
+  }
+});
+
+// node_modules/nanoid/url-alphabet/index.js
+var urlAlphabet;
+var init_url_alphabet = __esm({
+  "node_modules/nanoid/url-alphabet/index.js"() {
+    urlAlphabet = "useandom-26T198340PX75pxJACKVERYMINDBUSHWOLF_GQZbfghjklqvwyzrict";
+  }
+});
+
+// node_modules/nanoid/index.js
+var nanoid_exports = {};
+__export(nanoid_exports, {
+  customAlphabet: () => customAlphabet,
+  customRandom: () => customRandom,
+  nanoid: () => nanoid3,
+  random: () => random,
+  urlAlphabet: () => urlAlphabet
+});
+function fillPool(bytes) {
+  if (bytes < 0 || bytes > 1024) throw new RangeError("Wrong ID size");
+  if (!pool || pool.length < bytes) {
+    pool = Buffer.allocUnsafe(bytes * POOL_SIZE_MULTIPLIER);
+    import_node_crypto.webcrypto.getRandomValues(pool);
+    poolOffset = 0;
+  } else if (poolOffset + bytes > pool.length) {
+    import_node_crypto.webcrypto.getRandomValues(pool);
+    poolOffset = 0;
+  }
+  poolOffset += bytes;
+}
+function random(bytes) {
+  fillPool(bytes |= 0);
+  return pool.subarray(poolOffset - bytes, poolOffset);
+}
+function customRandom(alphabet, defaultSize, getRandom) {
+  let safeByteCutoff = 256 - 256 % alphabet.length;
+  if (safeByteCutoff === 256) {
+    let mask = alphabet.length - 1;
+    return (size = defaultSize) => {
+      if (!size) return "";
+      let id = "";
+      while (true) {
+        let bytes = getRandom(size);
+        let i = size;
+        while (i--) {
+          id += alphabet[bytes[i] & mask];
+          if (id.length >= size) return id;
+        }
+      }
+    };
+  }
+  let step = Math.ceil(1.6 * 256 * defaultSize / safeByteCutoff);
+  return (size = defaultSize) => {
+    if (!size) return "";
+    let id = "";
+    while (true) {
+      let bytes = getRandom(step);
+      let i = step;
+      while (i--) {
+        if (bytes[i] < safeByteCutoff) {
+          id += alphabet[bytes[i] % alphabet.length];
+          if (id.length >= size) return id;
+        }
+      }
+    }
+  };
+}
+function customAlphabet(alphabet, size = 21) {
+  return customRandom(alphabet, size, random);
+}
+function nanoid3(size = 21) {
+  fillPool(size |= 0);
+  let id = "";
+  for (let i = poolOffset - size; i < poolOffset; i++) {
+    id += urlAlphabet[pool[i] & 63];
+  }
+  return id;
+}
+var import_node_crypto, POOL_SIZE_MULTIPLIER, pool, poolOffset;
+var init_nanoid = __esm({
+  "node_modules/nanoid/index.js"() {
+    import_node_crypto = require("node:crypto");
+    init_url_alphabet();
+    init_url_alphabet();
+    POOL_SIZE_MULTIPLIER = 128;
   }
 });
 
@@ -19734,22 +19845,7 @@ function drizzle(...params) {
 
 // server/db.ts
 init_schema2();
-
-// server/_core/env.ts
-var ENV = {
-  cookieSecret: process.env.JWT_SECRET ?? "",
-  databaseUrl: process.env.DATABASE_URL ?? "",
-  ownerOpenId: process.env.OWNER_EMAIL ?? "",
-  isProduction: process.env.NODE_ENV === "production",
-  anthropicApiKey: process.env.ANTHROPIC_API_KEY ?? "",
-  s3Bucket: process.env.S3_BUCKET_NAME ?? "",
-  s3Region: process.env.AWS_REGION ?? "us-east-1",
-  s3AccessKeyId: process.env.AWS_ACCESS_KEY_ID ?? "",
-  s3SecretAccessKey: process.env.AWS_SECRET_ACCESS_KEY ?? "",
-  s3PublicUrl: process.env.S3_PUBLIC_URL ?? ""
-};
-
-// server/db.ts
+init_env();
 init_drizzle_orm();
 var _db = null;
 async function getDb() {
@@ -19858,6 +19954,16 @@ async function getProductsByCategory(categoryId, limit, offset) {
   if (limit) query = query.limit(limit);
   if (offset) query = query.offset(offset);
   return query;
+}
+async function getAllEducationLevels() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(educationLevels).where(eq(educationLevels.isActive, true)).orderBy(educationLevels.displayOrder);
+}
+async function getEducationClassesByLevel(levelId) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(educationClasses).where(and(eq(educationClasses.educationLevelId, levelId), eq(educationClasses.isActive, true))).orderBy(educationClasses.displayOrder);
 }
 async function getProductsByEducationLevel(educationLevelId, limit, offset) {
   const db = await getDb();
@@ -20431,6 +20537,7 @@ async function getPendingUsersCount() {
 }
 
 // server/_core/auth.ts
+init_env();
 function getSecretKey() {
   if (!ENV.cookieSecret) {
     throw new Error("JWT_SECRET is not configured");
@@ -37407,6 +37514,7 @@ var recruitmentRouter = router({
 });
 
 // server/_core/llm.ts
+init_env();
 var ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 var DEFAULT_MODEL = "claude-sonnet-4-6";
 var assertApiKey = () => {
@@ -38004,6 +38112,10 @@ var appRouter = router({
     })
   }),
   // CATEGORIES
+  education: router({
+    getLevels: publicProcedure.query(async () => getAllEducationLevels()),
+    getClasses: publicProcedure.input(external_exports.object({ levelId: external_exports.number() })).query(async ({ input }) => getEducationClassesByLevel(input.levelId))
+  }),
   categories: router({
     list: publicProcedure.query(async () => {
       return getAllCategories();
@@ -38014,6 +38126,21 @@ var appRouter = router({
   }),
   // PRODUCTS
   products: router({
+    getUploadUrl: protectedProcedure.input(external_exports.object({ fileName: external_exports.string(), fileType: external_exports.string() })).mutation(async ({ ctx, input }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "UNAUTHORIZED", message: "Admin only" });
+      const { nanoid: nanoid4 } = await Promise.resolve().then(() => (init_nanoid(), nanoid_exports));
+      const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
+      const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
+      const { ENV: ENV2 } = await Promise.resolve().then(() => (init_env(), env_exports));
+      if (!ENV2.s3Bucket) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "S3 non configur\xE9" });
+      const ext = input.fileName.split(".").pop() ?? "jpg";
+      const key = `products/${nanoid4()}.${ext}`;
+      const client = new S3Client({ region: ENV2.s3Region, credentials: { accessKeyId: ENV2.s3AccessKeyId, secretAccessKey: ENV2.s3SecretAccessKey } });
+      const cmd = new PutObjectCommand({ Bucket: ENV2.s3Bucket, Key: key, ContentType: input.fileType });
+      const uploadUrl = await getSignedUrl(client, cmd, { expiresIn: 300 });
+      const base = ENV2.s3PublicUrl ? ENV2.s3PublicUrl.replace(/\/$/, "") : `https://${ENV2.s3Bucket}.s3.${ENV2.s3Region}.amazonaws.com`;
+      return { uploadUrl, publicUrl: `${base}/${key}`, key };
+    }),
     list: publicProcedure.input(
       external_exports.object({
         limit: external_exports.number().optional(),
@@ -38192,8 +38319,8 @@ var appRouter = router({
     ).mutation(async ({ ctx, input }) => {
       const date6 = /* @__PURE__ */ new Date();
       const dateStr = date6.toISOString().slice(0, 10).replace(/-/g, "");
-      const random = Math.floor(Math.random() * 1e4).toString().padStart(5, "0");
-      const orderNumber = `ORD-${dateStr}-${random}`;
+      const random2 = Math.floor(Math.random() * 1e4).toString().padStart(5, "0");
+      const orderNumber = `ORD-${dateStr}-${random2}`;
       const result = await createOrder({
         userId: ctx.user.id,
         orderNumber,
