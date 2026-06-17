@@ -16,8 +16,8 @@ export default function Login() {
 
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: async () => {
-      await utils.auth.me.invalidate();
-      navigate("/");
+      // Rechargement complet pour que le cookie soit lu correctement
+      window.location.href = "/";
     },
     onError: (err: any) => {
       setError(err.message || "Email ou mot de passe incorrect.");
