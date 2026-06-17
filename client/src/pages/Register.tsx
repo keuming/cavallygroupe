@@ -17,9 +17,9 @@ export default function Register() {
   const [error, setError] = useState<string | null>(null);
 
   const registerMutation = trpc.auth.register.useMutation({
-    onSuccess: async () => {
-      await utils.auth.me.invalidate();
-      navigate("/account-type-selection");
+    onSuccess: async (data: any) => {
+      if (data?.token) localStorage.setItem("cavally_token", data.token);
+      window.location.href = "/";
     },
     onError: (err: any) => {
       setError(err.message || "Une erreur est survenue lors de l'inscription.");

@@ -134,7 +134,7 @@ export const appRouter = router({
         const cookieOptions = getSessionCookieOptions(ctx.req);
         ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
-        return { success: true, user };
+        return { success: true, user, token };
       }),
 
     login: publicProcedure
@@ -160,7 +160,7 @@ export const appRouter = router({
         const cookieOptions = getSessionCookieOptions(ctx.req);
         ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
-        return { success: true, user };
+        return { success: true, user, token };
       }),
 
     logout: publicProcedure.mutation(({ ctx }: any) => {

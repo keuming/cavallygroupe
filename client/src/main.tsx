@@ -42,9 +42,13 @@ const trpcClient = trpc.createClient({
       url: "/api/trpc",
       transformer: superjson,
       fetch(input, init) {
+        const token = localStorage.getItem("cavally_token");
+        const headers: Record<string, string> = {};
+        if (token) headers["Authorization"] = "Bearer " + token;
         return globalThis.fetch(input, {
           ...(init ?? {}),
           credentials: "include",
+          headers: { ...(init?.headers ?? {}), ...headers },
         });
       },
     }),

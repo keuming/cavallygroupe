@@ -15,8 +15,8 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
 
   const loginMutation = trpc.auth.login.useMutation({
-    onSuccess: async () => {
-      // Rechargement complet pour que le cookie soit lu correctement
+    onSuccess: async (data: any) => {
+      if (data?.token) localStorage.setItem("cavally_token", data.token);
       window.location.href = "/";
     },
     onError: (err: any) => {

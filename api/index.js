@@ -20583,7 +20583,11 @@ function parseCookies(cookieHeader) {
 }
 async function authenticateRequest(req) {
   const cookies = parseCookies(req.headers.cookie);
-  const token = cookies.get(COOKIE_NAME);
+  let token = cookies.get(COOKIE_NAME);
+  if (!token) {
+    const authHeader = req.headers.authorization;
+    if (authHeader?.startsWith("Bearer ")) token = authHeader.slice(7);
+  }
   if (!token) return null;
   const session = await verifySessionToken(token);
   if (!session) return null;
@@ -38094,7 +38098,7 @@ var appRouter = router({
       const token = await createSessionToken({ userId: user.id, openId: user.openId });
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
-      return { success: true, user };
+      return { success: true, user, token };
     }),
     login: publicProcedure.input(external_exports.object({
       email: external_exports.string().email(),
@@ -38113,7 +38117,7 @@ var appRouter = router({
       const token = await createSessionToken({ userId: user.id, openId: user.openId });
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
-      return { success: true, user };
+      return { success: true, user, token };
     }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);

@@ -58,7 +58,11 @@ function parseCookies(cookieHeader: string | undefined): Map<string, string> {
  */
 export async function authenticateRequest(req: Request): Promise<User | null> {
   const cookies = parseCookies(req.headers.cookie);
-  const token = cookies.get(COOKIE_NAME);
+  let token = cookies.get(COOKIE_NAME);
+  if (!token) {
+    const authHeader = req.headers.authorization;
+    if (authHeader?.startsWith("Bearer ")) token = authHeader.slice(7);
+  }
   if (!token) return null;
 
   const session = await verifySessionToken(token);
