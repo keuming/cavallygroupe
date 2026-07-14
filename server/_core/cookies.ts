@@ -30,7 +30,7 @@ export function getSessionCookieOptions(
 ): Pick<CookieOptions, "domain" | "httpOnly" | "path" | "sameSite" | "secure"> {
   const domain = getRootDomain(req.hostname);
   return {
-    httpOnly: true,
+    httpOnly: false,  // Accessible par JS pour partage entre sous-domaines
     path: "/",
     sameSite: "lax",
     secure: isSecureRequest(req),

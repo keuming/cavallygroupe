@@ -42,7 +42,12 @@ const trpcClient = trpc.createClient({
       url: "/api/trpc",
       transformer: superjson,
       fetch(input, init) {
-        const token = localStorage.getItem("cavally_token");
+        // Lire le token depuis localStorage OU depuis le cookie partagé
+        let token = localStorage.getItem("cavally_token");
+        if (!token) {
+          const match = document.cookie.match(/(?:^|;\s*)app_session_id=([^;]+)/);
+          if (match) token = decodeURIComponent(match[1]);
+        }
         const headers: Record<string, string> = {};
         if (token) headers["Authorization"] = "Bearer " + token;
         return globalThis.fetch(input, {

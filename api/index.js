@@ -12807,7 +12807,8 @@ function getRootDomain(hostname3) {
 function getSessionCookieOptions(req) {
   const domain2 = getRootDomain(req.hostname);
   return {
-    httpOnly: true,
+    httpOnly: false,
+    // Accessible par JS pour partage entre sous-domaines
     path: "/",
     sameSite: "lax",
     secure: isSecureRequest(req),
