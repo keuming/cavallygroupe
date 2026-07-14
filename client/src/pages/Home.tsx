@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { getLocalCartCount } from "@/hooks/useLocalCart";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -51,7 +52,16 @@ export default function Home() {
   );
   const { data: cartItems } = trpc.cart.list.useQuery();
   const addToCartMutation = trpc.cart.add.useMutation();
-  const cartCount = cartItems?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0;
+  const [localCartCount, setLocalCartCount] = useState(0);
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setLocalCartCount(getLocalCartCount());
+      const handler = () => setLocalCartCount(getLocalCartCount());
+      window.addEventListener("local-cart-updated", handler);
+      return () => window.removeEventListener("local-cart-updated", handler);
+    }
+  }, [isAuthenticated]);
+  const cartCount = isAuthenticated ? (cartItems?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0) : localCartCount;
   const aiChatMutation = trpc.aiChat.sendMessage.useMutation();
 
   const products = searchQuery ? searchResults : allProducts;

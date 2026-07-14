@@ -10,6 +10,7 @@ import SocialShareButtons from "@/components/SocialShareButtons";
 import { useState } from "react";
 import { Star, ShoppingCart, ArrowLeft, Send, BookOpen, User, Calendar, Tag, AlertCircle, Check, Loader } from "lucide-react";
 import { getLoginUrl } from "@/const";
+import { addToLocalCart } from "@/hooks/useLocalCart";
 import { useToast, ToastContainer } from "@/components/Toast";
 
 export default function ProductDetail() {
@@ -101,7 +102,9 @@ export default function ProductDetail() {
 
   const handleAddToCart = () => {
     if (!isAuthenticated) {
-      window.location.href = getLoginUrl();
+      addToLocalCart({ id: product.id, title: product.title, price: product.price, coverImageUrl: product.coverImageUrl ?? undefined, stock: product.stock }, quantity);
+      success(`${product.title} ajouté au panier (x${quantity}) ✓`);
+      setQuantity(1);
       return;
     }
     const utils = trpc.useUtils();
