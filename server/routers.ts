@@ -478,6 +478,48 @@ export const appRouter = router({
           await addOrderItems(orderId, orderItems as any);
           await clearCart(ctx.user.id);
 
+          // Envoyer email + SMS de confirmation (sans bloquer la réponse)
+          const { sendOrderConfirmationEmail } = await import('./email-service');
+          const smsService = await import('./sms-service');
+          const { getOrderItems: getItems } = await import('./db');
+
+          // Email de confirmation
+          if (input.customerEmail) {
+            try {
+              const orderItems2 = await getItems(orderId);
+              await sendOrderConfirmationEmail({
+                orderNumber,
+                customerName: input.customerName,
+                customerEmail: input.customerEmail,
+                items: orderItems2 || [],
+                totalAmount: input.totalAmount,
+                shippingCost: '0',
+                deliveryAddress: input.deliveryAddress,
+                deliveryCity: input.deliveryCity,
+                deliveryPostalCode: input.deliveryPostalCode,
+                paymentMethod: input.paymentMethod,
+                trackingUrl: `https://www.cavallygroupe.com/order-confirmation?orderId=${orderId}`,
+              });
+            } catch(emailErr) { console.error('[Order] Email error:', emailErr); }
+          }
+
+          // SMS de confirmation
+          if (input.customerPhone) {
+            try {
+              const SMS = smsService.default;
+              const svc = new SMS({
+                provider: (process.env.SMS_PROVIDER as any) || 'mock',
+                apiKey: process.env.SMS_API_KEY,
+                apiSecret: process.env.SMS_API_SECRET,
+                senderName: 'CavallyLivres',
+              });
+              await svc.sendSMS(
+                input.customerPhone,
+                `Bonjour ${input.customerName}, votre commande ${orderNumber} a bien été reçue ! Montant: ${input.totalAmount} FCFA. Suivez votre commande sur cavallygroupe.com`
+              );
+            } catch(smsErr) { console.error('[Order] SMS error:', smsErr); }
+          }
+
           return { success: true, orderId, orderNumber };
         }
         throw new Error("Failed to create order");
