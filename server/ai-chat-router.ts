@@ -29,26 +29,49 @@ export const aiChatRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       try {
-        // Build system prompt based on context
-        let systemPrompt = `You are a helpful customer support AI for Cavaly Livres, an e-commerce platform selling school and university textbooks, literary works, stationery, and writing supplies in Côte d'Ivoire.
-
-You should:
-- Be friendly, professional, and helpful
-- Respond in French (the user's language)
-- Provide accurate information about products and services
-- Help with order tracking and delivery information
-- Answer questions about payment methods (Wave, Orange Money, card)
-- Assist with product recommendations
-- Escalate to human support if the issue is complex or urgent
-
-Current user type: ${input.context?.userType || "customer"}`;
-
-        if (input.context?.productId) {
-          systemPrompt += `\nThe user is asking about a specific product (ID: ${input.context.productId}).`;
+        // Charger le catalogue depuis la base
+        const db2 = await getDb();
+        let catalogueInfo = '';
+        if (db2) {
+          try {
+            const { products: prods, categories: cats } = await import('../drizzle/schema');
+            const { eq: eqOp } = await import('drizzle-orm');
+            const produits = await db2.select().from(prods).where(eqOp(prods.isActive, true)).limit(20);
+            const catsData = await db2.select().from(cats);
+            const catMap: Record<number, string> = {};
+            for (const cat of catsData) catMap[cat.id] = cat.name;
+            catalogueInfo = produits.map((p: any) =>
+              `- ${p.title} | Auteur: ${p.author || 'N/A'} | Prix: ${p.price} FCFA | Stock: ${p.stock} | Catégorie: ${catMap[p.categoryId] || 'N/A'}`
+            ).join('\n');
+          } catch(e) { catalogueInfo = 'Catalogue indisponible'; }
         }
 
+        let systemPrompt = `Tu es l assistant IA de Cavally Livres, librairie en ligne a Abidjan, Cote d Ivoire.
+
+BOUTIQUE:
+- Site: www.cavallygroupe.com  
+- Livraison rapide a Abidjan et partout en Cote d Ivoire
+- Paiements: Wave, Orange Money, MTN MoMo, carte bancaire
+- Categories: Manuels Scolaires, Litterature, Parascolaire, Fournitures Scolaires, Dictionnaires, Sciences, Arts
+
+CATALOGUE DISPONIBLE:
+${catalogueInfo}
+
+REGLES:
+- Reponds TOUJOURS en francais
+- Sois chaleureux et precis
+- Utilise le catalogue ci-dessus pour repondre aux questions sur les produits
+- Ne fabrique pas de produits absents du catalogue
+- Pour les commandes/livraisons, demande le numero de commande
+- Propose des alternatives si un produit est indisponible
+
+Utilisateur: ${input.context?.userType || 'client'}`;
+
+        if (input.context?.productId) {
+          systemPrompt += `\nProduit demande ID: ${input.context.productId}`;
+        }
         if (input.context?.orderId) {
-          systemPrompt += `\nThe user is asking about a specific order (ID: ${input.context.orderId}).`;
+          systemPrompt += `\nCommande demandee ID: ${input.context.orderId}`;
         }
 
         // Get conversation history if provided

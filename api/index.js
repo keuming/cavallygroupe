@@ -12,8 +12,8 @@ var __commonJS = (cb, mod) => function __require() {
   return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
 };
 var __export = (target, all) => {
-  for (var name in all)
-    __defProp(target, name, { get: all[name], enumerable: true });
+  for (var name2 in all)
+    __defProp(target, name2, { get: all[name2], enumerable: true });
 };
 var __copyProps = (to2, from, except2, desc3) => {
   if (from && typeof from === "object" || typeof from === "function") {
@@ -197,10 +197,10 @@ var init_column_builder = __esm({
     ColumnBuilder = class {
       static [entityKind] = "ColumnBuilder";
       config;
-      constructor(name, dataType, columnType) {
+      constructor(name2, dataType, columnType) {
         this.config = {
-          name,
-          keyAsName: name === "",
+          name: name2,
+          keyAsName: name2 === "",
           notNull: false,
           default: void 0,
           hasDefault: false,
@@ -290,9 +290,9 @@ var init_column_builder = __esm({
         return this;
       }
       /** @internal Sets the name of the column to the key within the table definition if a name was not given. */
-      setName(name) {
+      setName(name2) {
         if (this.config.name !== "") return;
-        this.config.name = name;
+        this.config.name = name2;
       }
     };
   }
@@ -322,8 +322,8 @@ var init_foreign_keys = __esm({
       _onDelete = "no action";
       constructor(config2, actions) {
         this.reference = () => {
-          const { name, columns, foreignColumns } = config2();
-          return { name, columns, foreignTable: foreignColumns[0].table, foreignColumns };
+          const { name: name2, columns, foreignColumns } = config2();
+          return { name: name2, columns, foreignTable: foreignColumns[0].table, foreignColumns };
         };
         if (actions) {
           this._onUpdate = actions.onUpdate;
@@ -355,7 +355,7 @@ var init_foreign_keys = __esm({
       onUpdate;
       onDelete;
       getName() {
-        const { name, columns, foreignColumns } = this.reference();
+        const { name: name2, columns, foreignColumns } = this.reference();
         const columnNames = columns.map((column) => column.name);
         const foreignColumnNames = foreignColumns.map((column) => column.name);
         const chunks = [
@@ -364,7 +364,7 @@ var init_foreign_keys = __esm({
           foreignColumns[0].table[TableName],
           ...foreignColumnNames
         ];
-        return name ?? `${chunks.join("_")}_fk`;
+        return name2 ?? `${chunks.join("_")}_fk`;
       }
     };
   }
@@ -389,8 +389,8 @@ var init_unique_constraint = __esm({
     init_entity();
     init_table_utils();
     UniqueConstraintBuilder = class {
-      constructor(columns, name) {
-        this.name = name;
+      constructor(columns, name2) {
+        this.name = name2;
         this.columns = columns;
       }
       static [entityKind] = "PgUniqueConstraintBuilder";
@@ -411,18 +411,18 @@ var init_unique_constraint = __esm({
       static [entityKind] = "PgUniqueOnConstraintBuilder";
       /** @internal */
       name;
-      constructor(name) {
-        this.name = name;
+      constructor(name2) {
+        this.name = name2;
       }
       on(...columns) {
         return new UniqueConstraintBuilder(columns, this.name);
       }
     };
     UniqueConstraint = class {
-      constructor(table, columns, nullsNotDistinct, name) {
+      constructor(table, columns, nullsNotDistinct, name2) {
         this.table = table;
         this.columns = columns;
-        this.name = name ?? uniqueKeyName(this.table, this.columns.map((column) => column.name));
+        this.name = name2 ?? uniqueKeyName(this.table, this.columns.map((column) => column.name));
         this.nullsNotDistinct = nullsNotDistinct;
       }
       static [entityKind] = "PgUniqueConstraint";
@@ -537,9 +537,9 @@ var init_common = __esm({
         this.foreignKeyConfigs.push({ ref, actions });
         return this;
       }
-      unique(name, config2) {
+      unique(name2, config2) {
         this.config.isUnique = true;
-        this.config.uniqueName = name;
+        this.config.uniqueName = name2;
         this.config.uniqueType = config2?.nulls;
         return this;
       }
@@ -655,8 +655,8 @@ var init_common = __esm({
     };
     IndexedColumn = class {
       static [entityKind] = "IndexedColumn";
-      constructor(name, keyAsName, type, indexConfig) {
-        this.name = name;
+      constructor(name2, keyAsName, type, indexConfig) {
+        this.name = name2;
         this.keyAsName = keyAsName;
         this.type = type;
         this.indexConfig = indexConfig;
@@ -668,8 +668,8 @@ var init_common = __esm({
     };
     PgArrayBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgArrayBuilder";
-      constructor(name, baseBuilder, size) {
-        super(name, "array", "PgArray");
+      constructor(name2, baseBuilder, size) {
+        super(name2, "array", "PgArray");
         this.config.baseBuilder = baseBuilder;
         this.config.size = size;
       }
@@ -721,7 +721,7 @@ function pgEnum(enumName, input) {
 }
 function pgEnumWithSchema(enumName, values, schema) {
   const enumInstance = Object.assign(
-    (name) => new PgEnumColumnBuilder(name ?? "", enumInstance),
+    (name2) => new PgEnumColumnBuilder(name2 ?? "", enumInstance),
     {
       enumName,
       enumValues: values,
@@ -733,7 +733,7 @@ function pgEnumWithSchema(enumName, values, schema) {
 }
 function pgEnumObjectWithSchema(enumName, values, schema) {
   const enumInstance = Object.assign(
-    (name) => new PgEnumObjectColumnBuilder(name ?? "", enumInstance),
+    (name2) => new PgEnumObjectColumnBuilder(name2 ?? "", enumInstance),
     {
       enumName,
       enumValues: Object.values(values),
@@ -750,8 +750,8 @@ var init_enum = __esm({
     init_common();
     PgEnumObjectColumnBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgEnumObjectColumnBuilder";
-      constructor(name, enumInstance) {
-        super(name, "string", "PgEnumObjectColumn");
+      constructor(name2, enumInstance) {
+        super(name2, "string", "PgEnumObjectColumn");
         this.config.enum = enumInstance;
       }
       /** @internal */
@@ -777,8 +777,8 @@ var init_enum = __esm({
     isPgEnumSym = Symbol.for("drizzle:isPgEnum");
     PgEnumColumnBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgEnumColumnBuilder";
-      constructor(name, enumInstance) {
-        super(name, "string", "PgEnumColumn");
+      constructor(name2, enumInstance) {
+        super(name2, "string", "PgEnumColumn");
         this.config.enum = enumInstance;
       }
       /** @internal */
@@ -846,7 +846,7 @@ var init_tracing = __esm({
     init_tracing_utils();
     init_version();
     tracer = {
-      startActiveSpan(name, fn) {
+      startActiveSpan(name2, fn) {
         if (!otel) {
           return fn();
         }
@@ -855,7 +855,7 @@ var init_tracing = __esm({
         }
         return iife(
           (otel2, rawTracer2) => rawTracer2.startActiveSpan(
-            name,
+            name2,
             (span) => {
               try {
                 return fn(span);
@@ -888,6 +888,9 @@ var init_view_common = __esm({
 });
 
 // node_modules/drizzle-orm/table.js
+function isTable(table) {
+  return typeof table === "object" && table !== null && IsDrizzleTable in table;
+}
 function getTableName(table) {
   return table[TableName];
 }
@@ -947,8 +950,8 @@ var init_table = __esm({
       [IsDrizzleTable] = true;
       /** @internal */
       [ExtraConfigBuilder] = void 0;
-      constructor(name, schema, baseName) {
-        this[TableName] = this[OriginalName] = name;
+      constructor(name2, schema, baseName) {
+        this[TableName] = this[OriginalName] = name2;
         this[Schema] = schema;
         this[BaseName] = baseName;
       }
@@ -974,8 +977,14 @@ function mergeQueries(queries) {
   }
   return result;
 }
+function name(value) {
+  return new Name(value);
+}
 function isDriverValueEncoder(value) {
   return typeof value === "object" && value !== null && "mapToDriverValue" in value && typeof value.mapToDriverValue === "function";
+}
+function param(value, encoder2) {
+  return new Param(value, encoder2);
 }
 function sql(strings, ...params) {
   const queryChunks = [];
@@ -986,6 +995,9 @@ function sql(strings, ...params) {
     queryChunks.push(param2, new StringChunk(strings[paramIndex + 1]));
   }
   return new SQL(queryChunks);
+}
+function placeholder(name2) {
+  return new Placeholder(name2);
 }
 function fillPlaceholders(params, values) {
   return params.map((p2) => {
@@ -1003,6 +1015,12 @@ function fillPlaceholders(params, values) {
     }
     return p2;
   });
+}
+function isView(view) {
+  return typeof view === "object" && view !== null && IsDrizzleView in view;
+}
+function getViewName(view) {
+  return view[ViewBaseConfig].name;
 }
 var FakePrimitiveParam, StringChunk, SQL, Name, noopDecoder, noopEncoder, noopMapper, Param, Placeholder, IsDrizzleView, View;
 var init_sql = __esm({
@@ -1366,6 +1384,9 @@ var init_sql = __esm({
 function aliasedTable(table, tableAlias) {
   return new Proxy(table, new TableAliasProxyHandler(tableAlias, false));
 }
+function aliasedRelation(relation, tableAlias) {
+  return new Proxy(relation, new RelationTableAliasProxyHandler(tableAlias));
+}
 function aliasedTableColumn(column, tableAlias) {
   return new Proxy(
     column,
@@ -1594,11 +1615,11 @@ function mapResultRow(columns, row, joinsNotNullableMap) {
   return result;
 }
 function orderSelectedFields(fields, pathPrefix) {
-  return Object.entries(fields).reduce((result, [name, field]) => {
-    if (typeof name !== "string") {
+  return Object.entries(fields).reduce((result, [name2, field]) => {
+    if (typeof name2 !== "string") {
       return result;
     }
-    const newPath = pathPrefix ? [...pathPrefix, name] : [name];
+    const newPath = pathPrefix ? [...pathPrefix, name2] : [name2];
     if (is(field, Column) || is(field, SQL) || is(field, SQL.Aliased)) {
       result.push({ path: newPath, field });
     } else if (is(field, Table)) {
@@ -1637,18 +1658,21 @@ function mapUpdateSet(table, values) {
 }
 function applyMixins(baseClass, extendedClasses) {
   for (const extendedClass of extendedClasses) {
-    for (const name of Object.getOwnPropertyNames(extendedClass.prototype)) {
-      if (name === "constructor") continue;
+    for (const name2 of Object.getOwnPropertyNames(extendedClass.prototype)) {
+      if (name2 === "constructor") continue;
       Object.defineProperty(
         baseClass.prototype,
-        name,
-        Object.getOwnPropertyDescriptor(extendedClass.prototype, name) || /* @__PURE__ */ Object.create(null)
+        name2,
+        Object.getOwnPropertyDescriptor(extendedClass.prototype, name2) || /* @__PURE__ */ Object.create(null)
       );
     }
   }
 }
 function getTableColumns(table) {
   return table[Table.Symbol.Columns];
+}
+function getViewSelectedFields(view) {
+  return view[ViewBaseConfig].selectedFields;
 }
 function getTableLikeName(table) {
   return is(table, Subquery) ? table._.alias : is(table, View) ? table[ViewBaseConfig].name : is(table, SQL) ? void 0 : table[Table.Symbol.IsAlias] ? table[Table.Symbol.Name] : table[Table.Symbol.BaseName];
@@ -1717,10 +1741,10 @@ var init_int_common = __esm({
       static [entityKind] = "PgIntColumnBaseBuilder";
       generatedAlwaysAsIdentity(sequence) {
         if (sequence) {
-          const { name, ...options } = sequence;
+          const { name: name2, ...options } = sequence;
           this.config.generatedIdentity = {
             type: "always",
-            sequenceName: name,
+            sequenceName: name2,
             sequenceOptions: options
           };
         } else {
@@ -1734,10 +1758,10 @@ var init_int_common = __esm({
       }
       generatedByDefaultAsIdentity(sequence) {
         if (sequence) {
-          const { name, ...options } = sequence;
+          const { name: name2, ...options } = sequence;
           this.config.generatedIdentity = {
             type: "byDefault",
-            sequenceName: name,
+            sequenceName: name2,
             sequenceOptions: options
           };
         } else {
@@ -1755,11 +1779,11 @@ var init_int_common = __esm({
 
 // node_modules/drizzle-orm/pg-core/columns/bigint.js
 function bigint(a2, b) {
-  const { name, config: config2 } = getColumnNameAndConfig(a2, b);
+  const { name: name2, config: config2 } = getColumnNameAndConfig(a2, b);
   if (config2.mode === "number") {
-    return new PgBigInt53Builder(name);
+    return new PgBigInt53Builder(name2);
   }
-  return new PgBigInt64Builder(name);
+  return new PgBigInt64Builder(name2);
 }
 var PgBigInt53Builder, PgBigInt53, PgBigInt64Builder, PgBigInt64;
 var init_bigint = __esm({
@@ -1770,8 +1794,8 @@ var init_bigint = __esm({
     init_int_common();
     PgBigInt53Builder = class extends PgIntColumnBaseBuilder {
       static [entityKind] = "PgBigInt53Builder";
-      constructor(name) {
-        super(name, "number", "PgBigInt53");
+      constructor(name2) {
+        super(name2, "number", "PgBigInt53");
       }
       /** @internal */
       build(table) {
@@ -1792,8 +1816,8 @@ var init_bigint = __esm({
     };
     PgBigInt64Builder = class extends PgIntColumnBaseBuilder {
       static [entityKind] = "PgBigInt64Builder";
-      constructor(name) {
-        super(name, "bigint", "PgBigInt64");
+      constructor(name2) {
+        super(name2, "bigint", "PgBigInt64");
       }
       /** @internal */
       build(table) {
@@ -1818,11 +1842,11 @@ var init_bigint = __esm({
 
 // node_modules/drizzle-orm/pg-core/columns/bigserial.js
 function bigserial(a2, b) {
-  const { name, config: config2 } = getColumnNameAndConfig(a2, b);
+  const { name: name2, config: config2 } = getColumnNameAndConfig(a2, b);
   if (config2.mode === "number") {
-    return new PgBigSerial53Builder(name);
+    return new PgBigSerial53Builder(name2);
   }
-  return new PgBigSerial64Builder(name);
+  return new PgBigSerial64Builder(name2);
 }
 var PgBigSerial53Builder, PgBigSerial53, PgBigSerial64Builder, PgBigSerial64;
 var init_bigserial = __esm({
@@ -1832,8 +1856,8 @@ var init_bigserial = __esm({
     init_common();
     PgBigSerial53Builder = class extends PgColumnBuilder {
       static [entityKind] = "PgBigSerial53Builder";
-      constructor(name) {
-        super(name, "number", "PgBigSerial53");
+      constructor(name2) {
+        super(name2, "number", "PgBigSerial53");
         this.config.hasDefault = true;
         this.config.notNull = true;
       }
@@ -1859,8 +1883,8 @@ var init_bigserial = __esm({
     };
     PgBigSerial64Builder = class extends PgColumnBuilder {
       static [entityKind] = "PgBigSerial64Builder";
-      constructor(name) {
-        super(name, "bigint", "PgBigSerial64");
+      constructor(name2) {
+        super(name2, "bigint", "PgBigSerial64");
         this.config.hasDefault = true;
       }
       /** @internal */
@@ -1885,8 +1909,8 @@ var init_bigserial = __esm({
 });
 
 // node_modules/drizzle-orm/pg-core/columns/boolean.js
-function boolean(name) {
-  return new PgBooleanBuilder(name ?? "");
+function boolean(name2) {
+  return new PgBooleanBuilder(name2 ?? "");
 }
 var PgBooleanBuilder, PgBoolean;
 var init_boolean = __esm({
@@ -1895,8 +1919,8 @@ var init_boolean = __esm({
     init_common();
     PgBooleanBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgBooleanBuilder";
-      constructor(name) {
-        super(name, "boolean", "PgBoolean");
+      constructor(name2) {
+        super(name2, "boolean", "PgBoolean");
       }
       /** @internal */
       build(table) {
@@ -1914,8 +1938,8 @@ var init_boolean = __esm({
 
 // node_modules/drizzle-orm/pg-core/columns/char.js
 function char(a2, b = {}) {
-  const { name, config: config2 } = getColumnNameAndConfig(a2, b);
-  return new PgCharBuilder(name, config2);
+  const { name: name2, config: config2 } = getColumnNameAndConfig(a2, b);
+  return new PgCharBuilder(name2, config2);
 }
 var PgCharBuilder, PgChar;
 var init_char = __esm({
@@ -1925,8 +1949,8 @@ var init_char = __esm({
     init_common();
     PgCharBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgCharBuilder";
-      constructor(name, config2) {
-        super(name, "string", "PgChar");
+      constructor(name2, config2) {
+        super(name2, "string", "PgChar");
         this.config.length = config2.length;
         this.config.enumValues = config2.enum;
       }
@@ -1950,8 +1974,8 @@ var init_char = __esm({
 });
 
 // node_modules/drizzle-orm/pg-core/columns/cidr.js
-function cidr(name) {
-  return new PgCidrBuilder(name ?? "");
+function cidr(name2) {
+  return new PgCidrBuilder(name2 ?? "");
 }
 var PgCidrBuilder, PgCidr;
 var init_cidr = __esm({
@@ -1960,8 +1984,8 @@ var init_cidr = __esm({
     init_common();
     PgCidrBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgCidrBuilder";
-      constructor(name) {
-        super(name, "string", "PgCidr");
+      constructor(name2) {
+        super(name2, "string", "PgCidr");
       }
       /** @internal */
       build(table) {
@@ -1980,8 +2004,8 @@ var init_cidr = __esm({
 // node_modules/drizzle-orm/pg-core/columns/custom.js
 function customType(customTypeParams) {
   return (a2, b) => {
-    const { name, config: config2 } = getColumnNameAndConfig(a2, b);
-    return new PgCustomColumnBuilder(name, config2, customTypeParams);
+    const { name: name2, config: config2 } = getColumnNameAndConfig(a2, b);
+    return new PgCustomColumnBuilder(name2, config2, customTypeParams);
   };
 }
 var PgCustomColumnBuilder, PgCustomColumn;
@@ -1992,8 +2016,8 @@ var init_custom = __esm({
     init_common();
     PgCustomColumnBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgCustomColumnBuilder";
-      constructor(name, fieldConfig, customTypeParams) {
-        super(name, "custom", "PgCustomColumn");
+      constructor(name2, fieldConfig, customTypeParams) {
+        super(name2, "custom", "PgCustomColumn");
         this.config.fieldConfig = fieldConfig;
         this.config.customTypeParams = customTypeParams;
       }
@@ -2047,11 +2071,11 @@ var init_date_common = __esm({
 
 // node_modules/drizzle-orm/pg-core/columns/date.js
 function date(a2, b) {
-  const { name, config: config2 } = getColumnNameAndConfig(a2, b);
+  const { name: name2, config: config2 } = getColumnNameAndConfig(a2, b);
   if (config2?.mode === "date") {
-    return new PgDateBuilder(name);
+    return new PgDateBuilder(name2);
   }
-  return new PgDateStringBuilder(name);
+  return new PgDateStringBuilder(name2);
 }
 var PgDateBuilder, PgDate, PgDateStringBuilder, PgDateString;
 var init_date = __esm({
@@ -2062,8 +2086,8 @@ var init_date = __esm({
     init_date_common();
     PgDateBuilder = class extends PgDateColumnBaseBuilder {
       static [entityKind] = "PgDateBuilder";
-      constructor(name) {
-        super(name, "date", "PgDate");
+      constructor(name2) {
+        super(name2, "date", "PgDate");
       }
       /** @internal */
       build(table) {
@@ -2084,8 +2108,8 @@ var init_date = __esm({
     };
     PgDateStringBuilder = class extends PgDateColumnBaseBuilder {
       static [entityKind] = "PgDateStringBuilder";
-      constructor(name) {
-        super(name, "string", "PgDateString");
+      constructor(name2) {
+        super(name2, "string", "PgDateString");
       }
       /** @internal */
       build(table) {
@@ -2105,8 +2129,8 @@ var init_date = __esm({
 });
 
 // node_modules/drizzle-orm/pg-core/columns/double-precision.js
-function doublePrecision(name) {
-  return new PgDoublePrecisionBuilder(name ?? "");
+function doublePrecision(name2) {
+  return new PgDoublePrecisionBuilder(name2 ?? "");
 }
 var PgDoublePrecisionBuilder, PgDoublePrecision;
 var init_double_precision = __esm({
@@ -2115,8 +2139,8 @@ var init_double_precision = __esm({
     init_common();
     PgDoublePrecisionBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgDoublePrecisionBuilder";
-      constructor(name) {
-        super(name, "number", "PgDoublePrecision");
+      constructor(name2) {
+        super(name2, "number", "PgDoublePrecision");
       }
       /** @internal */
       build(table) {
@@ -2142,8 +2166,8 @@ var init_double_precision = __esm({
 });
 
 // node_modules/drizzle-orm/pg-core/columns/inet.js
-function inet(name) {
-  return new PgInetBuilder(name ?? "");
+function inet(name2) {
+  return new PgInetBuilder(name2 ?? "");
 }
 var PgInetBuilder, PgInet;
 var init_inet = __esm({
@@ -2152,8 +2176,8 @@ var init_inet = __esm({
     init_common();
     PgInetBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgInetBuilder";
-      constructor(name) {
-        super(name, "string", "PgInet");
+      constructor(name2) {
+        super(name2, "string", "PgInet");
       }
       /** @internal */
       build(table) {
@@ -2170,8 +2194,8 @@ var init_inet = __esm({
 });
 
 // node_modules/drizzle-orm/pg-core/columns/integer.js
-function integer(name) {
-  return new PgIntegerBuilder(name ?? "");
+function integer(name2) {
+  return new PgIntegerBuilder(name2 ?? "");
 }
 var PgIntegerBuilder, PgInteger;
 var init_integer = __esm({
@@ -2181,8 +2205,8 @@ var init_integer = __esm({
     init_int_common();
     PgIntegerBuilder = class extends PgIntColumnBaseBuilder {
       static [entityKind] = "PgIntegerBuilder";
-      constructor(name) {
-        super(name, "number", "PgInteger");
+      constructor(name2) {
+        super(name2, "number", "PgInteger");
       }
       /** @internal */
       build(table) {
@@ -2206,8 +2230,8 @@ var init_integer = __esm({
 
 // node_modules/drizzle-orm/pg-core/columns/interval.js
 function interval(a2, b = {}) {
-  const { name, config: config2 } = getColumnNameAndConfig(a2, b);
-  return new PgIntervalBuilder(name, config2);
+  const { name: name2, config: config2 } = getColumnNameAndConfig(a2, b);
+  return new PgIntervalBuilder(name2, config2);
 }
 var PgIntervalBuilder, PgInterval;
 var init_interval = __esm({
@@ -2217,8 +2241,8 @@ var init_interval = __esm({
     init_common();
     PgIntervalBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgIntervalBuilder";
-      constructor(name, intervalConfig) {
-        super(name, "string", "PgInterval");
+      constructor(name2, intervalConfig) {
+        super(name2, "string", "PgInterval");
         this.config.intervalConfig = intervalConfig;
       }
       /** @internal */
@@ -2240,8 +2264,8 @@ var init_interval = __esm({
 });
 
 // node_modules/drizzle-orm/pg-core/columns/json.js
-function json(name) {
-  return new PgJsonBuilder(name ?? "");
+function json(name2) {
+  return new PgJsonBuilder(name2 ?? "");
 }
 var PgJsonBuilder, PgJson;
 var init_json = __esm({
@@ -2250,8 +2274,8 @@ var init_json = __esm({
     init_common();
     PgJsonBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgJsonBuilder";
-      constructor(name) {
-        super(name, "json", "PgJson");
+      constructor(name2) {
+        super(name2, "json", "PgJson");
       }
       /** @internal */
       build(table) {
@@ -2284,8 +2308,8 @@ var init_json = __esm({
 });
 
 // node_modules/drizzle-orm/pg-core/columns/jsonb.js
-function jsonb(name) {
-  return new PgJsonbBuilder(name ?? "");
+function jsonb(name2) {
+  return new PgJsonbBuilder(name2 ?? "");
 }
 var PgJsonbBuilder, PgJsonb;
 var init_jsonb = __esm({
@@ -2294,8 +2318,8 @@ var init_jsonb = __esm({
     init_common();
     PgJsonbBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgJsonbBuilder";
-      constructor(name) {
-        super(name, "json", "PgJsonb");
+      constructor(name2) {
+        super(name2, "json", "PgJsonb");
       }
       /** @internal */
       build(table) {
@@ -2329,11 +2353,11 @@ var init_jsonb = __esm({
 
 // node_modules/drizzle-orm/pg-core/columns/line.js
 function line(a2, b) {
-  const { name, config: config2 } = getColumnNameAndConfig(a2, b);
+  const { name: name2, config: config2 } = getColumnNameAndConfig(a2, b);
   if (!config2?.mode || config2.mode === "tuple") {
-    return new PgLineBuilder(name);
+    return new PgLineBuilder(name2);
   }
-  return new PgLineABCBuilder(name);
+  return new PgLineABCBuilder(name2);
 }
 var PgLineBuilder, PgLineTuple, PgLineABCBuilder, PgLineABC;
 var init_line = __esm({
@@ -2343,8 +2367,8 @@ var init_line = __esm({
     init_common();
     PgLineBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgLineBuilder";
-      constructor(name) {
-        super(name, "array", "PgLine");
+      constructor(name2) {
+        super(name2, "array", "PgLine");
       }
       /** @internal */
       build(table) {
@@ -2369,8 +2393,8 @@ var init_line = __esm({
     };
     PgLineABCBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgLineABCBuilder";
-      constructor(name) {
-        super(name, "json", "PgLineABC");
+      constructor(name2) {
+        super(name2, "json", "PgLineABC");
       }
       /** @internal */
       build(table) {
@@ -2397,8 +2421,8 @@ var init_line = __esm({
 });
 
 // node_modules/drizzle-orm/pg-core/columns/macaddr.js
-function macaddr(name) {
-  return new PgMacaddrBuilder(name ?? "");
+function macaddr(name2) {
+  return new PgMacaddrBuilder(name2 ?? "");
 }
 var PgMacaddrBuilder, PgMacaddr;
 var init_macaddr = __esm({
@@ -2407,8 +2431,8 @@ var init_macaddr = __esm({
     init_common();
     PgMacaddrBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgMacaddrBuilder";
-      constructor(name) {
-        super(name, "string", "PgMacaddr");
+      constructor(name2) {
+        super(name2, "string", "PgMacaddr");
       }
       /** @internal */
       build(table) {
@@ -2425,8 +2449,8 @@ var init_macaddr = __esm({
 });
 
 // node_modules/drizzle-orm/pg-core/columns/macaddr8.js
-function macaddr8(name) {
-  return new PgMacaddr8Builder(name ?? "");
+function macaddr8(name2) {
+  return new PgMacaddr8Builder(name2 ?? "");
 }
 var PgMacaddr8Builder, PgMacaddr8;
 var init_macaddr8 = __esm({
@@ -2435,8 +2459,8 @@ var init_macaddr8 = __esm({
     init_common();
     PgMacaddr8Builder = class extends PgColumnBuilder {
       static [entityKind] = "PgMacaddr8Builder";
-      constructor(name) {
-        super(name, "string", "PgMacaddr8");
+      constructor(name2) {
+        super(name2, "string", "PgMacaddr8");
       }
       /** @internal */
       build(table) {
@@ -2454,9 +2478,9 @@ var init_macaddr8 = __esm({
 
 // node_modules/drizzle-orm/pg-core/columns/numeric.js
 function numeric(a2, b) {
-  const { name, config: config2 } = getColumnNameAndConfig(a2, b);
+  const { name: name2, config: config2 } = getColumnNameAndConfig(a2, b);
   const mode = config2?.mode;
-  return mode === "number" ? new PgNumericNumberBuilder(name, config2?.precision, config2?.scale) : mode === "bigint" ? new PgNumericBigIntBuilder(name, config2?.precision, config2?.scale) : new PgNumericBuilder(name, config2?.precision, config2?.scale);
+  return mode === "number" ? new PgNumericNumberBuilder(name2, config2?.precision, config2?.scale) : mode === "bigint" ? new PgNumericBigIntBuilder(name2, config2?.precision, config2?.scale) : new PgNumericBuilder(name2, config2?.precision, config2?.scale);
 }
 var PgNumericBuilder, PgNumeric, PgNumericNumberBuilder, PgNumericNumber, PgNumericBigIntBuilder, PgNumericBigInt;
 var init_numeric = __esm({
@@ -2466,8 +2490,8 @@ var init_numeric = __esm({
     init_common();
     PgNumericBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgNumericBuilder";
-      constructor(name, precision, scale) {
-        super(name, "string", "PgNumeric");
+      constructor(name2, precision, scale) {
+        super(name2, "string", "PgNumeric");
         this.config.precision = precision;
         this.config.scale = scale;
       }
@@ -2501,8 +2525,8 @@ var init_numeric = __esm({
     };
     PgNumericNumberBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgNumericNumberBuilder";
-      constructor(name, precision, scale) {
-        super(name, "number", "PgNumericNumber");
+      constructor(name2, precision, scale) {
+        super(name2, "number", "PgNumericNumber");
         this.config.precision = precision;
         this.config.scale = scale;
       }
@@ -2540,8 +2564,8 @@ var init_numeric = __esm({
     };
     PgNumericBigIntBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgNumericBigIntBuilder";
-      constructor(name, precision, scale) {
-        super(name, "bigint", "PgNumericBigInt");
+      constructor(name2, precision, scale) {
+        super(name2, "bigint", "PgNumericBigInt");
         this.config.precision = precision;
         this.config.scale = scale;
       }
@@ -2579,11 +2603,11 @@ var init_numeric = __esm({
 
 // node_modules/drizzle-orm/pg-core/columns/point.js
 function point(a2, b) {
-  const { name, config: config2 } = getColumnNameAndConfig(a2, b);
+  const { name: name2, config: config2 } = getColumnNameAndConfig(a2, b);
   if (!config2?.mode || config2.mode === "tuple") {
-    return new PgPointTupleBuilder(name);
+    return new PgPointTupleBuilder(name2);
   }
-  return new PgPointObjectBuilder(name);
+  return new PgPointObjectBuilder(name2);
 }
 var PgPointTupleBuilder, PgPointTuple, PgPointObjectBuilder, PgPointObject;
 var init_point = __esm({
@@ -2593,8 +2617,8 @@ var init_point = __esm({
     init_common();
     PgPointTupleBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgPointTupleBuilder";
-      constructor(name) {
-        super(name, "array", "PgPointTuple");
+      constructor(name2) {
+        super(name2, "array", "PgPointTuple");
       }
       /** @internal */
       build(table) {
@@ -2622,8 +2646,8 @@ var init_point = __esm({
     };
     PgPointObjectBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgPointObjectBuilder";
-      constructor(name) {
-        super(name, "json", "PgPointObject");
+      constructor(name2) {
+        super(name2, "json", "PgPointObject");
       }
       /** @internal */
       build(table) {
@@ -2697,11 +2721,11 @@ var init_utils2 = __esm({
 
 // node_modules/drizzle-orm/pg-core/columns/postgis_extension/geometry.js
 function geometry(a2, b) {
-  const { name, config: config2 } = getColumnNameAndConfig(a2, b);
+  const { name: name2, config: config2 } = getColumnNameAndConfig(a2, b);
   if (!config2?.mode || config2.mode === "tuple") {
-    return new PgGeometryBuilder(name);
+    return new PgGeometryBuilder(name2);
   }
-  return new PgGeometryObjectBuilder(name);
+  return new PgGeometryObjectBuilder(name2);
 }
 var PgGeometryBuilder, PgGeometry, PgGeometryObjectBuilder, PgGeometryObject;
 var init_geometry = __esm({
@@ -2712,8 +2736,8 @@ var init_geometry = __esm({
     init_utils2();
     PgGeometryBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgGeometryBuilder";
-      constructor(name) {
-        super(name, "array", "PgGeometry");
+      constructor(name2) {
+        super(name2, "array", "PgGeometry");
       }
       /** @internal */
       build(table) {
@@ -2737,8 +2761,8 @@ var init_geometry = __esm({
     };
     PgGeometryObjectBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgGeometryObjectBuilder";
-      constructor(name) {
-        super(name, "json", "PgGeometryObject");
+      constructor(name2) {
+        super(name2, "json", "PgGeometryObject");
       }
       /** @internal */
       build(table) {
@@ -2765,8 +2789,8 @@ var init_geometry = __esm({
 });
 
 // node_modules/drizzle-orm/pg-core/columns/real.js
-function real(name) {
-  return new PgRealBuilder(name ?? "");
+function real(name2) {
+  return new PgRealBuilder(name2 ?? "");
 }
 var PgRealBuilder, PgReal;
 var init_real = __esm({
@@ -2775,8 +2799,8 @@ var init_real = __esm({
     init_common();
     PgRealBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgRealBuilder";
-      constructor(name, length) {
-        super(name, "number", "PgReal");
+      constructor(name2, length) {
+        super(name2, "number", "PgReal");
         this.config.length = length;
       }
       /** @internal */
@@ -2803,8 +2827,8 @@ var init_real = __esm({
 });
 
 // node_modules/drizzle-orm/pg-core/columns/serial.js
-function serial(name) {
-  return new PgSerialBuilder(name ?? "");
+function serial(name2) {
+  return new PgSerialBuilder(name2 ?? "");
 }
 var PgSerialBuilder, PgSerial;
 var init_serial = __esm({
@@ -2813,8 +2837,8 @@ var init_serial = __esm({
     init_common();
     PgSerialBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgSerialBuilder";
-      constructor(name) {
-        super(name, "number", "PgSerial");
+      constructor(name2) {
+        super(name2, "number", "PgSerial");
         this.config.hasDefault = true;
         this.config.notNull = true;
       }
@@ -2833,8 +2857,8 @@ var init_serial = __esm({
 });
 
 // node_modules/drizzle-orm/pg-core/columns/smallint.js
-function smallint(name) {
-  return new PgSmallIntBuilder(name ?? "");
+function smallint(name2) {
+  return new PgSmallIntBuilder(name2 ?? "");
 }
 var PgSmallIntBuilder, PgSmallInt;
 var init_smallint = __esm({
@@ -2844,8 +2868,8 @@ var init_smallint = __esm({
     init_int_common();
     PgSmallIntBuilder = class extends PgIntColumnBaseBuilder {
       static [entityKind] = "PgSmallIntBuilder";
-      constructor(name) {
-        super(name, "number", "PgSmallInt");
+      constructor(name2) {
+        super(name2, "number", "PgSmallInt");
       }
       /** @internal */
       build(table) {
@@ -2868,8 +2892,8 @@ var init_smallint = __esm({
 });
 
 // node_modules/drizzle-orm/pg-core/columns/smallserial.js
-function smallserial(name) {
-  return new PgSmallSerialBuilder(name ?? "");
+function smallserial(name2) {
+  return new PgSmallSerialBuilder(name2 ?? "");
 }
 var PgSmallSerialBuilder, PgSmallSerial;
 var init_smallserial = __esm({
@@ -2878,8 +2902,8 @@ var init_smallserial = __esm({
     init_common();
     PgSmallSerialBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgSmallSerialBuilder";
-      constructor(name) {
-        super(name, "number", "PgSmallSerial");
+      constructor(name2) {
+        super(name2, "number", "PgSmallSerial");
         this.config.hasDefault = true;
         this.config.notNull = true;
       }
@@ -2902,8 +2926,8 @@ var init_smallserial = __esm({
 
 // node_modules/drizzle-orm/pg-core/columns/text.js
 function text(a2, b = {}) {
-  const { name, config: config2 } = getColumnNameAndConfig(a2, b);
-  return new PgTextBuilder(name, config2);
+  const { name: name2, config: config2 } = getColumnNameAndConfig(a2, b);
+  return new PgTextBuilder(name2, config2);
 }
 var PgTextBuilder, PgText;
 var init_text = __esm({
@@ -2913,8 +2937,8 @@ var init_text = __esm({
     init_common();
     PgTextBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgTextBuilder";
-      constructor(name, config2) {
-        super(name, "string", "PgText");
+      constructor(name2, config2) {
+        super(name2, "string", "PgText");
         this.config.enumValues = config2.enum;
       }
       /** @internal */
@@ -2934,8 +2958,8 @@ var init_text = __esm({
 
 // node_modules/drizzle-orm/pg-core/columns/time.js
 function time(a2, b = {}) {
-  const { name, config: config2 } = getColumnNameAndConfig(a2, b);
-  return new PgTimeBuilder(name, config2.withTimezone ?? false, config2.precision);
+  const { name: name2, config: config2 } = getColumnNameAndConfig(a2, b);
+  return new PgTimeBuilder(name2, config2.withTimezone ?? false, config2.precision);
 }
 var PgTimeBuilder, PgTime;
 var init_time = __esm({
@@ -2945,8 +2969,8 @@ var init_time = __esm({
     init_common();
     init_date_common();
     PgTimeBuilder = class extends PgDateColumnBaseBuilder {
-      constructor(name, withTimezone, precision) {
-        super(name, "string", "PgTime");
+      constructor(name2, withTimezone, precision) {
+        super(name2, "string", "PgTime");
         this.withTimezone = withTimezone;
         this.precision = precision;
         this.config.withTimezone = withTimezone;
@@ -2977,11 +3001,11 @@ var init_time = __esm({
 
 // node_modules/drizzle-orm/pg-core/columns/timestamp.js
 function timestamp(a2, b = {}) {
-  const { name, config: config2 } = getColumnNameAndConfig(a2, b);
+  const { name: name2, config: config2 } = getColumnNameAndConfig(a2, b);
   if (config2?.mode === "string") {
-    return new PgTimestampStringBuilder(name, config2.withTimezone ?? false, config2.precision);
+    return new PgTimestampStringBuilder(name2, config2.withTimezone ?? false, config2.precision);
   }
-  return new PgTimestampBuilder(name, config2?.withTimezone ?? false, config2?.precision);
+  return new PgTimestampBuilder(name2, config2?.withTimezone ?? false, config2?.precision);
 }
 var PgTimestampBuilder, PgTimestamp, PgTimestampStringBuilder, PgTimestampString;
 var init_timestamp = __esm({
@@ -2992,8 +3016,8 @@ var init_timestamp = __esm({
     init_date_common();
     PgTimestampBuilder = class extends PgDateColumnBaseBuilder {
       static [entityKind] = "PgTimestampBuilder";
-      constructor(name, withTimezone, precision) {
-        super(name, "date", "PgTimestamp");
+      constructor(name2, withTimezone, precision) {
+        super(name2, "date", "PgTimestamp");
         this.config.withTimezone = withTimezone;
         this.config.precision = precision;
       }
@@ -3024,8 +3048,8 @@ var init_timestamp = __esm({
     };
     PgTimestampStringBuilder = class extends PgDateColumnBaseBuilder {
       static [entityKind] = "PgTimestampStringBuilder";
-      constructor(name, withTimezone, precision) {
-        super(name, "string", "PgTimestampString");
+      constructor(name2, withTimezone, precision) {
+        super(name2, "string", "PgTimestampString");
         this.config.withTimezone = withTimezone;
         this.config.precision = precision;
       }
@@ -3055,8 +3079,8 @@ var init_timestamp = __esm({
 });
 
 // node_modules/drizzle-orm/pg-core/columns/uuid.js
-function uuid(name) {
-  return new PgUUIDBuilder(name ?? "");
+function uuid(name2) {
+  return new PgUUIDBuilder(name2 ?? "");
 }
 var PgUUIDBuilder, PgUUID;
 var init_uuid = __esm({
@@ -3066,8 +3090,8 @@ var init_uuid = __esm({
     init_common();
     PgUUIDBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgUUIDBuilder";
-      constructor(name) {
-        super(name, "string", "PgUUID");
+      constructor(name2) {
+        super(name2, "string", "PgUUID");
       }
       /**
        * Adds `default gen_random_uuid()` to the column definition.
@@ -3091,8 +3115,8 @@ var init_uuid = __esm({
 
 // node_modules/drizzle-orm/pg-core/columns/varchar.js
 function varchar(a2, b = {}) {
-  const { name, config: config2 } = getColumnNameAndConfig(a2, b);
-  return new PgVarcharBuilder(name, config2);
+  const { name: name2, config: config2 } = getColumnNameAndConfig(a2, b);
+  return new PgVarcharBuilder(name2, config2);
 }
 var PgVarcharBuilder, PgVarchar;
 var init_varchar = __esm({
@@ -3102,8 +3126,8 @@ var init_varchar = __esm({
     init_common();
     PgVarcharBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgVarcharBuilder";
-      constructor(name, config2) {
-        super(name, "string", "PgVarchar");
+      constructor(name2, config2) {
+        super(name2, "string", "PgVarchar");
         this.config.length = config2.length;
         this.config.enumValues = config2.enum;
       }
@@ -3128,8 +3152,8 @@ var init_varchar = __esm({
 
 // node_modules/drizzle-orm/pg-core/columns/vector_extension/bit.js
 function bit(a2, b) {
-  const { name, config: config2 } = getColumnNameAndConfig(a2, b);
-  return new PgBinaryVectorBuilder(name, config2);
+  const { name: name2, config: config2 } = getColumnNameAndConfig(a2, b);
+  return new PgBinaryVectorBuilder(name2, config2);
 }
 var PgBinaryVectorBuilder, PgBinaryVector;
 var init_bit = __esm({
@@ -3139,8 +3163,8 @@ var init_bit = __esm({
     init_common();
     PgBinaryVectorBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgBinaryVectorBuilder";
-      constructor(name, config2) {
-        super(name, "string", "PgBinaryVector");
+      constructor(name2, config2) {
+        super(name2, "string", "PgBinaryVector");
         this.config.dimensions = config2.dimensions;
       }
       /** @internal */
@@ -3163,8 +3187,8 @@ var init_bit = __esm({
 
 // node_modules/drizzle-orm/pg-core/columns/vector_extension/halfvec.js
 function halfvec(a2, b) {
-  const { name, config: config2 } = getColumnNameAndConfig(a2, b);
-  return new PgHalfVectorBuilder(name, config2);
+  const { name: name2, config: config2 } = getColumnNameAndConfig(a2, b);
+  return new PgHalfVectorBuilder(name2, config2);
 }
 var PgHalfVectorBuilder, PgHalfVector;
 var init_halfvec = __esm({
@@ -3174,8 +3198,8 @@ var init_halfvec = __esm({
     init_common();
     PgHalfVectorBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgHalfVectorBuilder";
-      constructor(name, config2) {
-        super(name, "array", "PgHalfVector");
+      constructor(name2, config2) {
+        super(name2, "array", "PgHalfVector");
         this.config.dimensions = config2.dimensions;
       }
       /** @internal */
@@ -3204,8 +3228,8 @@ var init_halfvec = __esm({
 
 // node_modules/drizzle-orm/pg-core/columns/vector_extension/sparsevec.js
 function sparsevec(a2, b) {
-  const { name, config: config2 } = getColumnNameAndConfig(a2, b);
-  return new PgSparseVectorBuilder(name, config2);
+  const { name: name2, config: config2 } = getColumnNameAndConfig(a2, b);
+  return new PgSparseVectorBuilder(name2, config2);
 }
 var PgSparseVectorBuilder, PgSparseVector;
 var init_sparsevec = __esm({
@@ -3215,8 +3239,8 @@ var init_sparsevec = __esm({
     init_common();
     PgSparseVectorBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgSparseVectorBuilder";
-      constructor(name, config2) {
-        super(name, "string", "PgSparseVector");
+      constructor(name2, config2) {
+        super(name2, "string", "PgSparseVector");
         this.config.dimensions = config2.dimensions;
       }
       /** @internal */
@@ -3239,8 +3263,8 @@ var init_sparsevec = __esm({
 
 // node_modules/drizzle-orm/pg-core/columns/vector_extension/vector.js
 function vector(a2, b) {
-  const { name, config: config2 } = getColumnNameAndConfig(a2, b);
-  return new PgVectorBuilder(name, config2);
+  const { name: name2, config: config2 } = getColumnNameAndConfig(a2, b);
+  return new PgVectorBuilder(name2, config2);
 }
 var PgVectorBuilder, PgVector;
 var init_vector = __esm({
@@ -3250,8 +3274,8 @@ var init_vector = __esm({
     init_common();
     PgVectorBuilder = class extends PgColumnBuilder {
       static [entityKind] = "PgVectorBuilder";
-      constructor(name, config2) {
-        super(name, "array", "PgVector");
+      constructor(name2, config2) {
+        super(name2, "array", "PgVector");
         this.config.dimensions = config2.dimensions;
       }
       /** @internal */
@@ -3353,24 +3377,24 @@ var init_all = __esm({
 });
 
 // node_modules/drizzle-orm/pg-core/table.js
-function pgTableWithSchema(name, columns, extraConfig, schema, baseName = name) {
-  const rawTable = new PgTable(name, schema, baseName);
+function pgTableWithSchema(name2, columns, extraConfig, schema, baseName = name2) {
+  const rawTable = new PgTable(name2, schema, baseName);
   const parsedColumns = typeof columns === "function" ? columns(getPgColumnBuilders()) : columns;
   const builtColumns = Object.fromEntries(
-    Object.entries(parsedColumns).map(([name2, colBuilderBase]) => {
+    Object.entries(parsedColumns).map(([name22, colBuilderBase]) => {
       const colBuilder = colBuilderBase;
-      colBuilder.setName(name2);
+      colBuilder.setName(name22);
       const column = colBuilder.build(rawTable);
       rawTable[InlineForeignKeys].push(...colBuilder.buildForeignKeys(column, rawTable));
-      return [name2, column];
+      return [name22, column];
     })
   );
   const builtColumnsForExtraConfig = Object.fromEntries(
-    Object.entries(parsedColumns).map(([name2, colBuilderBase]) => {
+    Object.entries(parsedColumns).map(([name22, colBuilderBase]) => {
       const colBuilder = colBuilderBase;
-      colBuilder.setName(name2);
+      colBuilder.setName(name22);
       const column = colBuilder.buildExtraConfigColumn(rawTable);
-      return [name2, column];
+      return [name22, column];
     })
   );
   const table = Object.assign(rawTable, builtColumns);
@@ -3410,8 +3434,8 @@ var init_table2 = __esm({
       /** @internal */
       [Table.Symbol.ExtraConfigColumns] = {};
     };
-    pgTable = (name, columns, extraConfig) => {
-      return pgTableWithSchema(name, columns, extraConfig, void 0);
+    pgTable = (name2, columns, extraConfig) => {
+      return pgTableWithSchema(name2, columns, extraConfig, void 0);
     };
   }
 });
@@ -3422,8 +3446,8 @@ var init_checks = __esm({
   "node_modules/drizzle-orm/pg-core/checks.js"() {
     init_entity();
     CheckBuilder = class {
-      constructor(name, value) {
-        this.name = name;
+      constructor(name2, value) {
+        this.name = name2;
         this.value = value;
       }
       static [entityKind] = "PgCheckBuilder";
@@ -3495,9 +3519,9 @@ var init_indexes = __esm({
     init_entity();
     init_columns();
     IndexBuilderOn = class {
-      constructor(unique, name) {
+      constructor(unique, name2) {
         this.unique = unique;
-        this.name = name;
+        this.name = name2;
       }
       static [entityKind] = "PgIndexBuilderOn";
       on(...columns) {
@@ -3565,9 +3589,9 @@ var init_indexes = __esm({
       static [entityKind] = "PgIndexBuilder";
       /** @internal */
       config;
-      constructor(columns, unique, only, name, method = "btree") {
+      constructor(columns, unique, only, name2, method = "btree") {
         this.config = {
-          name,
+          name: name2,
           columns,
           unique,
           only,
@@ -3607,8 +3631,8 @@ var init_policies = __esm({
   "node_modules/drizzle-orm/pg-core/policies.js"() {
     init_entity();
     PgPolicy = class {
-      constructor(name, config2) {
-        this.name = name;
+      constructor(name2, config2) {
+        this.name = name2;
         if (config2) {
           this.as = config2.as;
           this.for = config2.for;
@@ -3645,9 +3669,9 @@ var init_primary_keys = __esm({
       columns;
       /** @internal */
       name;
-      constructor(columns, name) {
+      constructor(columns, name2) {
         this.columns = columns;
-        this.name = name;
+        this.name = name2;
       }
       /** @internal */
       build(table) {
@@ -3655,10 +3679,10 @@ var init_primary_keys = __esm({
       }
     };
     PrimaryKey = class {
-      constructor(table, columns, name) {
+      constructor(table, columns, name2) {
         this.table = table;
         this.columns = columns;
-        this.name = name;
+        this.name = name2;
       }
       static [entityKind] = "PgPrimaryKey";
       columns;
@@ -3842,17 +3866,17 @@ function exists(subquery) {
 function notExists(subquery) {
   return sql`not exists ${subquery}`;
 }
-function between(column, min, max) {
-  return sql`${column} between ${bindIfParam(min, column)} and ${bindIfParam(
-    max,
+function between(column, min2, max2) {
+  return sql`${column} between ${bindIfParam(min2, column)} and ${bindIfParam(
+    max2,
     column
   )}`;
 }
-function notBetween(column, min, max) {
+function notBetween(column, min2, max2) {
   return sql`${column} not between ${bindIfParam(
-    min,
+    min2,
     column
-  )} and ${bindIfParam(max, column)}`;
+  )} and ${bindIfParam(max2, column)}`;
 }
 function like(column, value) {
   return sql`${column} like ${value}`;
@@ -3865,6 +3889,36 @@ function ilike(column, value) {
 }
 function notIlike(column, value) {
   return sql`${column} not ilike ${value}`;
+}
+function arrayContains(column, values) {
+  if (Array.isArray(values)) {
+    if (values.length === 0) {
+      throw new Error("arrayContains requires at least one value");
+    }
+    const array2 = sql`${bindIfParam(values, column)}`;
+    return sql`${column} @> ${array2}`;
+  }
+  return sql`${column} @> ${bindIfParam(values, column)}`;
+}
+function arrayContained(column, values) {
+  if (Array.isArray(values)) {
+    if (values.length === 0) {
+      throw new Error("arrayContained requires at least one value");
+    }
+    const array2 = sql`${bindIfParam(values, column)}`;
+    return sql`${column} <@ ${array2}`;
+  }
+  return sql`${column} <@ ${bindIfParam(values, column)}`;
+}
+function arrayOverlaps(column, values) {
+  if (Array.isArray(values)) {
+    if (values.length === 0) {
+      throw new Error("arrayOverlaps requires at least one value");
+    }
+    const array2 = sql`${bindIfParam(values, column)}`;
+    return sql`${column} && ${array2}`;
+  }
+  return sql`${column} && ${bindIfParam(values, column)}`;
 }
 var eq, ne, gt, gte, lt, lte;
 var init_conditions = __esm({
@@ -4199,14 +4253,81 @@ var init_relations = __esm({
 });
 
 // node_modules/drizzle-orm/sql/functions/aggregate.js
+function count(expression) {
+  return sql`count(${expression || sql.raw("*")})`.mapWith(Number);
+}
+function countDistinct(expression) {
+  return sql`count(distinct ${expression})`.mapWith(Number);
+}
+function avg(expression) {
+  return sql`avg(${expression})`.mapWith(String);
+}
+function avgDistinct(expression) {
+  return sql`avg(distinct ${expression})`.mapWith(String);
+}
+function sum(expression) {
+  return sql`sum(${expression})`.mapWith(String);
+}
+function sumDistinct(expression) {
+  return sql`sum(distinct ${expression})`.mapWith(String);
+}
+function max(expression) {
+  return sql`max(${expression})`.mapWith(is(expression, Column) ? expression : String);
+}
+function min(expression) {
+  return sql`min(${expression})`.mapWith(is(expression, Column) ? expression : String);
+}
 var init_aggregate = __esm({
   "node_modules/drizzle-orm/sql/functions/aggregate.js"() {
+    init_column();
+    init_entity();
+    init_sql();
   }
 });
 
 // node_modules/drizzle-orm/sql/functions/vector.js
+function toSql(value) {
+  return JSON.stringify(value);
+}
+function l2Distance(column, value) {
+  if (Array.isArray(value)) {
+    return sql`${column} <-> ${toSql(value)}`;
+  }
+  return sql`${column} <-> ${value}`;
+}
+function l1Distance(column, value) {
+  if (Array.isArray(value)) {
+    return sql`${column} <+> ${toSql(value)}`;
+  }
+  return sql`${column} <+> ${value}`;
+}
+function innerProduct(column, value) {
+  if (Array.isArray(value)) {
+    return sql`${column} <#> ${toSql(value)}`;
+  }
+  return sql`${column} <#> ${value}`;
+}
+function cosineDistance(column, value) {
+  if (Array.isArray(value)) {
+    return sql`${column} <=> ${toSql(value)}`;
+  }
+  return sql`${column} <=> ${value}`;
+}
+function hammingDistance(column, value) {
+  if (Array.isArray(value)) {
+    return sql`${column} <~> ${toSql(value)}`;
+  }
+  return sql`${column} <~> ${value}`;
+}
+function jaccardDistance(column, value) {
+  if (Array.isArray(value)) {
+    return sql`${column} <%> ${toSql(value)}`;
+  }
+  return sql`${column} <%> ${value}`;
+}
 var init_vector2 = __esm({
   "node_modules/drizzle-orm/sql/functions/vector.js"() {
+    init_sql();
   }
 });
 
@@ -4294,8 +4415,8 @@ var init_dialect = __esm({
           }
         });
       }
-      escapeName(name) {
-        return `"${name}"`;
+      escapeName(name2) {
+        return `"${name2}"`;
       }
       escapeParam(num) {
         return `$${num + 1}`;
@@ -6146,7 +6267,7 @@ var init_select2 = __esm({
     PgSelectBase = class extends PgSelectQueryBuilderBase {
       static [entityKind] = "PgSelect";
       /** @internal */
-      _prepare(name) {
+      _prepare(name2) {
         const { session, config: config2, dialect, joinsNotNullableMap, authToken, cacheConfig, usedTables } = this;
         if (!session) {
           throw new Error("Cannot execute a query on a query builder. Please use a database instance instead.");
@@ -6154,7 +6275,7 @@ var init_select2 = __esm({
         const { fields } = config2;
         return tracer.startActiveSpan("drizzle.prepareQuery", () => {
           const fieldsList = orderSelectedFields(fields);
-          const query = session.prepareQuery(dialect.sqlToQuery(this.getSQL()), fieldsList, name, true, void 0, {
+          const query = session.prepareQuery(dialect.sqlToQuery(this.getSQL()), fieldsList, name2, true, void 0, {
             type: "select",
             tables: [...usedTables]
           }, cacheConfig);
@@ -6169,8 +6290,8 @@ var init_select2 = __esm({
        *
        * {@link https://www.postgresql.org/docs/current/sql-prepare.html | Postgres prepare documentation}
        */
-      prepare(name) {
-        return this._prepare(name);
+      prepare(name2) {
+        return this._prepare(name2);
       }
       authToken;
       /** @internal */
@@ -6300,17 +6421,17 @@ var init_query_builder2 = __esm({
 });
 
 // node_modules/drizzle-orm/pg-core/view.js
-function pgViewWithSchema(name, selection, schema) {
+function pgViewWithSchema(name2, selection, schema) {
   if (selection) {
-    return new ManualViewBuilder(name, selection, schema);
+    return new ManualViewBuilder(name2, selection, schema);
   }
-  return new ViewBuilder(name, schema);
+  return new ViewBuilder(name2, schema);
 }
-function pgMaterializedViewWithSchema(name, selection, schema) {
+function pgMaterializedViewWithSchema(name2, selection, schema) {
   if (selection) {
-    return new ManualMaterializedViewBuilder(name, selection, schema);
+    return new ManualMaterializedViewBuilder(name2, selection, schema);
   }
-  return new MaterializedViewBuilder(name, schema);
+  return new MaterializedViewBuilder(name2, schema);
 }
 var DefaultViewBuilderCore, ViewBuilder, ManualViewBuilder, MaterializedViewBuilderCore, MaterializedViewBuilder, ManualMaterializedViewBuilder, PgView, PgMaterializedViewConfig, PgMaterializedView;
 var init_view = __esm({
@@ -6323,8 +6444,8 @@ var init_view = __esm({
     init_view_base();
     init_view_common2();
     DefaultViewBuilderCore = class {
-      constructor(name, schema) {
-        this.name = name;
+      constructor(name2, schema) {
+        this.name = name2;
         this.schema = schema;
       }
       static [entityKind] = "PgDefaultViewBuilderCore";
@@ -6364,9 +6485,9 @@ var init_view = __esm({
     ManualViewBuilder = class extends DefaultViewBuilderCore {
       static [entityKind] = "PgManualViewBuilder";
       columns;
-      constructor(name, columns, schema) {
-        super(name, schema);
-        this.columns = getTableColumns(pgTable(name, columns));
+      constructor(name2, columns, schema) {
+        super(name2, schema);
+        this.columns = getTableColumns(pgTable(name2, columns));
       }
       existing() {
         return new Proxy(
@@ -6408,8 +6529,8 @@ var init_view = __esm({
       }
     };
     MaterializedViewBuilderCore = class {
-      constructor(name, schema) {
-        this.name = name;
+      constructor(name2, schema) {
+        this.name = name2;
         this.schema = schema;
       }
       static [entityKind] = "PgMaterializedViewBuilderCore";
@@ -6466,9 +6587,9 @@ var init_view = __esm({
     ManualMaterializedViewBuilder = class extends MaterializedViewBuilderCore {
       static [entityKind] = "PgManualMaterializedViewBuilder";
       columns;
-      constructor(name, columns, schema) {
-        super(name, schema);
-        this.columns = getTableColumns(pgTable(name, columns));
+      constructor(name2, columns, schema) {
+        super(name2, schema);
+        this.columns = getTableColumns(pgTable(name2, columns));
       }
       existing() {
         return new Proxy(
@@ -6639,16 +6760,16 @@ var init_delete = __esm({
         return rest;
       }
       /** @internal */
-      _prepare(name) {
+      _prepare(name2) {
         return tracer.startActiveSpan("drizzle.prepareQuery", () => {
-          return this.session.prepareQuery(this.dialect.sqlToQuery(this.getSQL()), this.config.returning, name, true, void 0, {
+          return this.session.prepareQuery(this.dialect.sqlToQuery(this.getSQL()), this.config.returning, name2, true, void 0, {
             type: "delete",
             tables: extractUsedTable(this.config.table)
           }, this.cacheConfig);
         });
       }
-      prepare(name) {
-        return this._prepare(name);
+      prepare(name2) {
+        return this._prepare(name2);
       }
       authToken;
       /** @internal */
@@ -6846,16 +6967,16 @@ var init_insert = __esm({
         return rest;
       }
       /** @internal */
-      _prepare(name) {
+      _prepare(name2) {
         return tracer.startActiveSpan("drizzle.prepareQuery", () => {
-          return this.session.prepareQuery(this.dialect.sqlToQuery(this.getSQL()), this.config.returning, name, true, void 0, {
+          return this.session.prepareQuery(this.dialect.sqlToQuery(this.getSQL()), this.config.returning, name2, true, void 0, {
             type: "insert",
             tables: extractUsedTable(this.config.table)
           }, this.cacheConfig);
         });
       }
-      prepare(name) {
-        return this._prepare(name);
+      prepare(name2) {
+        return this._prepare(name2);
       }
       authToken;
       /** @internal */
@@ -6925,13 +7046,13 @@ var init_refresh_materialized_view = __esm({
         return rest;
       }
       /** @internal */
-      _prepare(name) {
+      _prepare(name2) {
         return tracer.startActiveSpan("drizzle.prepareQuery", () => {
-          return this.session.prepareQuery(this.dialect.sqlToQuery(this.getSQL()), void 0, name, true);
+          return this.session.prepareQuery(this.dialect.sqlToQuery(this.getSQL()), void 0, name2, true);
         });
       }
-      prepare(name) {
-        return this._prepare(name);
+      prepare(name2) {
+        return this._prepare(name2);
       }
       authToken;
       /** @internal */
@@ -7143,16 +7264,16 @@ var init_update = __esm({
         return rest;
       }
       /** @internal */
-      _prepare(name) {
-        const query = this.session.prepareQuery(this.dialect.sqlToQuery(this.getSQL()), this.config.returning, name, true, void 0, {
+      _prepare(name2) {
+        const query = this.session.prepareQuery(this.dialect.sqlToQuery(this.getSQL()), this.config.returning, name2, true, void 0, {
           type: "insert",
           tables: extractUsedTable(this.config.table)
         }, this.cacheConfig);
         query.joinsNotNullableMap = this.joinsNotNullableMap;
         return query;
       }
-      prepare(name) {
-        return this._prepare(name);
+      prepare(name2) {
+        return this._prepare(name2);
       }
       authToken;
       /** @internal */
@@ -7313,13 +7434,13 @@ var init_query = __esm({
       }
       static [entityKind] = "PgRelationalQuery";
       /** @internal */
-      _prepare(name) {
+      _prepare(name2) {
         return tracer.startActiveSpan("drizzle.prepareQuery", () => {
           const { query, builtQuery } = this._toSQL();
           return this.session.prepareQuery(
             builtQuery,
             void 0,
-            name,
+            name2,
             true,
             (rawRows, mapColumnValue) => {
               const rows = rawRows.map(
@@ -7333,8 +7454,8 @@ var init_query = __esm({
           );
         });
       }
-      prepare(name) {
-        return this._prepare(name);
+      prepare(name2) {
+        return this._prepare(name2);
       }
       _getQuery() {
         return this.dialect.buildRelationalQueryWithoutPK({
@@ -7748,8 +7869,8 @@ var init_roles = __esm({
   "node_modules/drizzle-orm/pg-core/roles.js"() {
     init_entity();
     PgRole = class {
-      constructor(name, config2) {
-        this.name = name;
+      constructor(name2, config2) {
+        this.name = name2;
         if (config2) {
           this.createDb = config2.createDb;
           this.createRole = config2.createRole;
@@ -7774,8 +7895,8 @@ var init_roles = __esm({
 });
 
 // node_modules/drizzle-orm/pg-core/sequence.js
-function pgSequenceWithSchema(name, options, schema) {
-  return new PgSequence(name, options, schema);
+function pgSequenceWithSchema(name2, options, schema) {
+  return new PgSequence(name2, options, schema);
 }
 var PgSequence;
 var init_sequence = __esm({
@@ -7807,14 +7928,14 @@ var init_schema = __esm({
         this.schemaName = schemaName;
       }
       static [entityKind] = "PgSchema";
-      table = (name, columns, extraConfig) => {
-        return pgTableWithSchema(name, columns, extraConfig, this.schemaName);
+      table = (name2, columns, extraConfig) => {
+        return pgTableWithSchema(name2, columns, extraConfig, this.schemaName);
       };
-      view = (name, columns) => {
-        return pgViewWithSchema(name, columns, this.schemaName);
+      view = (name2, columns) => {
+        return pgViewWithSchema(name2, columns, this.schemaName);
       };
-      materializedView = (name, columns) => {
-        return pgMaterializedViewWithSchema(name, columns, this.schemaName);
+      materializedView = (name2, columns) => {
+        return pgMaterializedViewWithSchema(name2, columns, this.schemaName);
       };
       enum(enumName, input) {
         return Array.isArray(input) ? pgEnumWithSchema(
@@ -7823,8 +7944,8 @@ var init_schema = __esm({
           this.schemaName
         ) : pgEnumObjectWithSchema(enumName, input, this.schemaName);
       }
-      sequence = (name, options) => {
-        return pgSequenceWithSchema(name, options, this.schemaName);
+      sequence = (name2, options) => {
+        return pgSequenceWithSchema(name2, options, this.schemaName);
       };
       getSQL() {
         return new SQL([sql.identifier(this.schemaName)]);
@@ -8054,6 +8175,127 @@ var init_operations = __esm({
 });
 
 // node_modules/drizzle-orm/index.js
+var drizzle_orm_exports = {};
+__export(drizzle_orm_exports, {
+  BaseName: () => BaseName,
+  Column: () => Column,
+  ColumnAliasProxyHandler: () => ColumnAliasProxyHandler,
+  ColumnBuilder: () => ColumnBuilder,
+  Columns: () => Columns,
+  ConsoleLogWriter: () => ConsoleLogWriter,
+  DefaultLogger: () => DefaultLogger,
+  DrizzleError: () => DrizzleError,
+  DrizzleQueryError: () => DrizzleQueryError,
+  ExtraConfigBuilder: () => ExtraConfigBuilder,
+  ExtraConfigColumns: () => ExtraConfigColumns,
+  FakePrimitiveParam: () => FakePrimitiveParam,
+  IsAlias: () => IsAlias,
+  Many: () => Many,
+  Name: () => Name,
+  NoopLogger: () => NoopLogger,
+  One: () => One,
+  OriginalName: () => OriginalName,
+  Param: () => Param,
+  Placeholder: () => Placeholder,
+  QueryPromise: () => QueryPromise,
+  Relation: () => Relation,
+  RelationTableAliasProxyHandler: () => RelationTableAliasProxyHandler,
+  Relations: () => Relations,
+  SQL: () => SQL,
+  Schema: () => Schema,
+  StringChunk: () => StringChunk,
+  Subquery: () => Subquery,
+  Table: () => Table,
+  TableAliasProxyHandler: () => TableAliasProxyHandler,
+  TransactionRollbackError: () => TransactionRollbackError,
+  View: () => View,
+  ViewBaseConfig: () => ViewBaseConfig,
+  WithSubquery: () => WithSubquery,
+  aliasedRelation: () => aliasedRelation,
+  aliasedTable: () => aliasedTable,
+  aliasedTableColumn: () => aliasedTableColumn,
+  and: () => and,
+  applyMixins: () => applyMixins,
+  arrayContained: () => arrayContained,
+  arrayContains: () => arrayContains,
+  arrayOverlaps: () => arrayOverlaps,
+  asc: () => asc,
+  avg: () => avg,
+  avgDistinct: () => avgDistinct,
+  between: () => between,
+  bindIfParam: () => bindIfParam,
+  cosineDistance: () => cosineDistance,
+  count: () => count,
+  countDistinct: () => countDistinct,
+  createMany: () => createMany,
+  createOne: () => createOne,
+  createTableRelationsHelpers: () => createTableRelationsHelpers,
+  desc: () => desc,
+  entityKind: () => entityKind,
+  eq: () => eq,
+  exists: () => exists,
+  extractTablesRelationalConfig: () => extractTablesRelationalConfig,
+  fillPlaceholders: () => fillPlaceholders,
+  getColumnNameAndConfig: () => getColumnNameAndConfig,
+  getOperators: () => getOperators,
+  getOrderByOperators: () => getOrderByOperators,
+  getTableColumns: () => getTableColumns,
+  getTableLikeName: () => getTableLikeName,
+  getTableName: () => getTableName,
+  getTableUniqueName: () => getTableUniqueName,
+  getViewName: () => getViewName,
+  getViewSelectedFields: () => getViewSelectedFields,
+  gt: () => gt,
+  gte: () => gte,
+  hammingDistance: () => hammingDistance,
+  hasOwnEntityKind: () => hasOwnEntityKind,
+  haveSameKeys: () => haveSameKeys,
+  ilike: () => ilike,
+  inArray: () => inArray,
+  innerProduct: () => innerProduct,
+  is: () => is,
+  isConfig: () => isConfig,
+  isDriverValueEncoder: () => isDriverValueEncoder,
+  isNotNull: () => isNotNull,
+  isNull: () => isNull,
+  isSQLWrapper: () => isSQLWrapper,
+  isTable: () => isTable,
+  isView: () => isView,
+  jaccardDistance: () => jaccardDistance,
+  l1Distance: () => l1Distance,
+  l2Distance: () => l2Distance,
+  like: () => like,
+  lt: () => lt,
+  lte: () => lte,
+  mapColumnsInAliasedSQLToAlias: () => mapColumnsInAliasedSQLToAlias,
+  mapColumnsInSQLToAlias: () => mapColumnsInSQLToAlias,
+  mapRelationalRow: () => mapRelationalRow,
+  mapResultRow: () => mapResultRow,
+  mapUpdateSet: () => mapUpdateSet,
+  max: () => max,
+  min: () => min,
+  name: () => name,
+  ne: () => ne,
+  noopDecoder: () => noopDecoder,
+  noopEncoder: () => noopEncoder,
+  noopMapper: () => noopMapper,
+  normalizeRelation: () => normalizeRelation,
+  not: () => not,
+  notBetween: () => notBetween,
+  notExists: () => notExists,
+  notIlike: () => notIlike,
+  notInArray: () => notInArray,
+  notLike: () => notLike,
+  or: () => or2,
+  orderSelectedFields: () => orderSelectedFields,
+  param: () => param,
+  placeholder: () => placeholder,
+  relations: () => relations,
+  sql: () => sql,
+  sum: () => sum,
+  sumDistinct: () => sumDistinct,
+  textDecoder: () => textDecoder
+});
 var init_drizzle_orm = __esm({
   "node_modules/drizzle-orm/index.js"() {
     init_alias();
@@ -8763,8 +9005,8 @@ var require_custom_transformer_registry = __commonJS({
             return transformer.isApplicable(v2);
           });
         };
-        CustomTransformerRegistry2.prototype.findByName = function(name) {
-          return this.transfomers[name];
+        CustomTransformerRegistry2.prototype.findByName = function(name2) {
+          return this.transfomers[name2];
         };
         return CustomTransformerRegistry2;
       })()
@@ -9585,8 +9827,8 @@ var require_cjs = __commonJS({
       if (!Object.prototype.hasOwnProperty.call(type, "prototype")) {
         throw new TypeError("Type is not a class");
       }
-      const name = type.name;
-      return getType(payload) === name || Boolean(payload && payload.constructor === type);
+      const name2 = type.name;
+      return getType(payload) === name2 || Boolean(payload && payload.constructor === type);
     }
     function isInstanceOf(value, classOrClassName) {
       if (typeof classOrClassName === "function") {
@@ -9834,8 +10076,8 @@ var require_dist = __commonJS({
         SuperJSON2.prototype.registerSymbol = function(v2, identifier) {
           this.symbolRegistry.register(v2, identifier);
         };
-        SuperJSON2.prototype.registerCustom = function(transformer, name) {
-          this.customTransformerRegistry.register(__assign({ name }, transformer));
+        SuperJSON2.prototype.registerCustom = function(transformer, name2) {
+          this.customTransformerRegistry.register(__assign({ name: name2 }, transformer));
         };
         SuperJSON2.prototype.allowErrorProps = function() {
           var _a3;
@@ -11209,7 +11451,7 @@ function _takeWithGrace() {
       const iterator = _usingCtx$1.a(iteratorResource(iterable));
       let result;
       const timer = _usingCtx$1.u(timerResource(opts.gracePeriodMs));
-      let count = opts.count;
+      let count2 = opts.count;
       let timerPromise = new Promise(() => {
       });
       while (true) {
@@ -11217,7 +11459,7 @@ function _takeWithGrace() {
         if (result === disposablePromiseTimerResult) throwAbortError();
         if (result.done) return result.value;
         yield result.value;
-        if (--count === 0) timerPromise = timer.start();
+        if (--count2 === 0) timerPromise = timer.start();
         result = null;
       }
     } catch (_2) {
@@ -11501,7 +11743,7 @@ function _createBatchStreamProducer() {
   _createBatchStreamProducer = (0, import_wrapAsyncGenerator$2.default)(function* (opts) {
     const { data } = opts;
     let counter = 0;
-    const placeholder = 0;
+    const placeholder2 = 0;
     const mergedIterables = mergeAsyncIterables();
     function registerAsync(callback) {
       const idx = counter++;
@@ -11617,7 +11859,7 @@ function _createBatchStreamProducer() {
     function encode4(value, path) {
       if (value === void 0) return [[]];
       const reg = encodeAsync3(value, path);
-      if (reg) return [[placeholder], [null, ...reg]];
+      if (reg) return [[placeholder2], [null, ...reg]];
       if (!isPlainObject(value)) return [[value]];
       const newObj = emptyObject();
       const asyncValues = [];
@@ -11627,7 +11869,7 @@ function _createBatchStreamProducer() {
           newObj[key] = item;
           continue;
         }
-        newObj[key] = placeholder;
+        newObj[key] = placeholder2;
         asyncValues.push([key, ...transformed]);
       }
       return [[newObj], ...asyncValues];
@@ -12945,11 +13187,11 @@ var JWSSignatureVerificationFailed = class extends JOSEError {
 };
 
 // node_modules/jose/dist/webapi/lib/crypto_key.js
-function unusable(name, prop = "algorithm.name") {
-  return new TypeError(`CryptoKey does not support this operation, its ${prop} must be ${name}`);
+function unusable(name2, prop = "algorithm.name") {
+  return new TypeError(`CryptoKey does not support this operation, its ${prop} must be ${name2}`);
 }
-function isAlgorithm(algorithm, name) {
-  return algorithm.name === name;
+function isAlgorithm(algorithm, name2) {
+  return algorithm.name === name2;
 }
 function getHashLength(hash2) {
   return parseInt(hash2.name.slice(4), 10);
@@ -13917,8 +14159,8 @@ function validateClaimsSet(protectedHeader, encodedPayload, options = {}) {
   }
   if (maxTokenAge) {
     const age = now - payload.iat;
-    const max = typeof maxTokenAge === "number" ? maxTokenAge : secs_default(maxTokenAge);
-    if (age - tolerance > max) {
+    const max2 = typeof maxTokenAge === "number" ? maxTokenAge : secs_default(maxTokenAge);
+    if (age - tolerance > max2) {
       throw new JWTExpired('"iat" claim timestamp check failed (too far in the past)', payload, "iat", "check_failed");
     }
     if (age < 0 - tolerance) {
@@ -19680,7 +19922,7 @@ var NeonHttpSession = class extends PgSession {
   clientQuery;
   logger;
   cache;
-  prepareQuery(query, fields, name, isResponseInArrayMode, customResultMapper, queryMetadata, cacheConfig) {
+  prepareQuery(query, fields, name2, isResponseInArrayMode, customResultMapper, queryMetadata, cacheConfig) {
     return new NeonHttpPreparedQuery(
       this.client,
       query,
@@ -20163,7 +20405,7 @@ async function getAverageRating(productId) {
   if (!db) throw new Error("Database not available");
   const allReviews = await db.select().from(reviews).where(eq(reviews.productId, productId));
   if (allReviews.length === 0) return 0;
-  const totalRating = allReviews.reduce((sum, review) => sum + review.rating, 0);
+  const totalRating = allReviews.reduce((sum2, review) => sum2 + review.rating, 0);
   return Math.round(totalRating / allReviews.length * 10) / 10;
 }
 async function getUserReviewForProduct(userId, productId) {
@@ -21124,7 +21366,7 @@ var NEVER = /* @__PURE__ */ Object.freeze({
   status: "aborted"
 });
 // @__NO_SIDE_EFFECTS__
-function $constructor(name, initializer3, params) {
+function $constructor(name2, initializer3, params) {
   function init(inst, def) {
     if (!inst._zod) {
       Object.defineProperty(inst, "_zod", {
@@ -21136,10 +21378,10 @@ function $constructor(name, initializer3, params) {
         enumerable: false
       });
     }
-    if (inst._zod.traits.has(name)) {
+    if (inst._zod.traits.has(name2)) {
       return;
     }
-    inst._zod.traits.add(name);
+    inst._zod.traits.add(name2);
     initializer3(inst, def);
     const proto = _2.prototype;
     const keys = Object.keys(proto);
@@ -21153,7 +21395,7 @@ function $constructor(name, initializer3, params) {
   const Parent = params?.Parent ?? Object;
   class Definition extends Parent {
   }
-  Object.defineProperty(Definition, "name", { value: name });
+  Object.defineProperty(Definition, "name", { value: name2 });
   function _2(def) {
     var _a3;
     const inst = params?.Parent ? new Definition() : this;
@@ -21169,10 +21411,10 @@ function $constructor(name, initializer3, params) {
     value: (inst) => {
       if (params?.Parent && inst instanceof params.Parent)
         return true;
-      return inst?._zod?.traits?.has(name);
+      return inst?._zod?.traits?.has(name2);
     }
   });
-  Object.defineProperty(_2, "name", { value: name });
+  Object.defineProperty(_2, "name", { value: name2 });
   return _2;
 }
 var $brand = Symbol("zod_brand");
@@ -21182,8 +21424,8 @@ var $ZodAsyncError = class extends Error {
   }
 };
 var $ZodEncodeError = class extends Error {
-  constructor(name) {
-    super(`Encountered unidirectional transform during encode: ${name}`);
+  constructor(name2) {
+    super(`Encountered unidirectional transform during encode: ${name2}`);
     this.name = "ZodEncodeError";
   }
 };
@@ -25232,8 +25474,8 @@ function az_default() {
 }
 
 // node_modules/zod/v4/locales/be.js
-function getBelarusianPlural(count, one, few, many) {
-  const absCount = Math.abs(count);
+function getBelarusianPlural(count2, one, few, many) {
+  const absCount = Math.abs(count2);
   const lastDigit = absCount % 10;
   const lastTwoDigits = absCount % 100;
   if (lastTwoDigits >= 11 && lastTwoDigits <= 19) {
@@ -27311,8 +27553,8 @@ function hu_default() {
 }
 
 // node_modules/zod/v4/locales/hy.js
-function getArmenianPlural(count, one, many) {
-  return Math.abs(count) === 1 ? one : many;
+function getArmenianPlural(count2, one, many) {
+  return Math.abs(count2) === 1 ? one : many;
 }
 function withDefiniteArticle(word) {
   if (!word)
@@ -29440,8 +29682,8 @@ function ro_default() {
 }
 
 // node_modules/zod/v4/locales/ru.js
-function getRussianPlural(count, one, few, many) {
-  const absCount = Math.abs(count);
+function getRussianPlural(count2, one, few, many) {
+  const absCount = Math.abs(count2);
   const lastDigit = absCount % 10;
   const lastTwoDigits = absCount % 100;
   if (lastTwoDigits >= 11 && lastTwoDigits <= 19) {
@@ -36318,8 +36560,8 @@ var adminRouter = router({
       const totalProducts = await db.select().from(products);
       const totalOrders = await db.select().from(orders);
       const totalUsersResult = await db.select().from(users).where(eq(users.role, "user"));
-      const totalRevenue = totalOrders.reduce((sum, order) => {
-        return sum + (parseFloat(order.totalAmount) || 0);
+      const totalRevenue = totalOrders.reduce((sum2, order) => {
+        return sum2 + (parseFloat(order.totalAmount) || 0);
       }, 0);
       const lowStockProducts = totalProducts.filter((p2) => p2.stock < 10);
       return {
@@ -36550,8 +36792,8 @@ var adminRouter = router({
           (o) => new Date(o.createdAt) <= input.endDate
         );
       }
-      const totalRevenue = filteredOrders.reduce((sum, order) => {
-        return sum + (parseFloat(order.totalAmount) || 0);
+      const totalRevenue = filteredOrders.reduce((sum2, order) => {
+        return sum2 + (parseFloat(order.totalAmount) || 0);
       }, 0);
       const totalOrders = filteredOrders.length;
       const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
@@ -36726,7 +36968,7 @@ function generateOrderConfirmationHTML(data) {
             <div class="summary">
               <div class="summary-row">
                 <span>Sous-total:</span>
-                <span>${data.items.reduce((sum, item) => sum + Number(item.subtotal), 0)} FCFA</span>
+                <span>${data.items.reduce((sum2, item) => sum2 + Number(item.subtotal), 0)} FCFA</span>
               </div>
               <div class="summary-row">
                 <span>Frais de port:</span>
@@ -37366,7 +37608,7 @@ var orderManagementRouter = router({
         inTransit: allOrders.filter((o) => o.status === "in_transit").length,
         delivered: allOrders.filter((o) => o.status === "delivered").length,
         cancelled: allOrders.filter((o) => o.status === "cancelled").length,
-        totalRevenue: allOrders.reduce((sum, o) => sum + parseFloat(o.totalAmount), 0)
+        totalRevenue: allOrders.reduce((sum2, o) => sum2 + parseFloat(o.totalAmount), 0)
       };
       return stats;
     } catch (error51) {
@@ -37615,25 +37857,50 @@ var aiChatRouter = router({
     })
   ).mutation(async ({ ctx, input }) => {
     try {
-      let systemPrompt = `You are a helpful customer support AI for Cavaly Livres, an e-commerce platform selling school and university textbooks, literary works, stationery, and writing supplies in C\xF4te d'Ivoire.
+      const db2 = await getDb();
+      let catalogueInfo = "";
+      if (db2) {
+        try {
+          const { products: prods, categories: cats } = await Promise.resolve().then(() => (init_schema2(), schema_exports));
+          const { eq: eqOp } = await Promise.resolve().then(() => (init_drizzle_orm(), drizzle_orm_exports));
+          const produits = await db2.select().from(prods).where(eqOp(prods.isActive, true)).limit(20);
+          const catsData = await db2.select().from(cats);
+          const catMap = {};
+          for (const cat of catsData) catMap[cat.id] = cat.name;
+          catalogueInfo = produits.map(
+            (p2) => `- ${p2.title} | Auteur: ${p2.author || "N/A"} | Prix: ${p2.price} FCFA | Stock: ${p2.stock} | Cat\xE9gorie: ${catMap[p2.categoryId] || "N/A"}`
+          ).join("\n");
+        } catch (e) {
+          catalogueInfo = "Catalogue indisponible";
+        }
+      }
+      let systemPrompt = `Tu es l assistant IA de Cavally Livres, librairie en ligne a Abidjan, Cote d Ivoire.
 
-You should:
-- Be friendly, professional, and helpful
-- Respond in French (the user's language)
-- Provide accurate information about products and services
-- Help with order tracking and delivery information
-- Answer questions about payment methods (Wave, Orange Money, card)
-- Assist with product recommendations
-- Escalate to human support if the issue is complex or urgent
+BOUTIQUE:
+- Site: www.cavallygroupe.com  
+- Livraison rapide a Abidjan et partout en Cote d Ivoire
+- Paiements: Wave, Orange Money, MTN MoMo, carte bancaire
+- Categories: Manuels Scolaires, Litterature, Parascolaire, Fournitures Scolaires, Dictionnaires, Sciences, Arts
 
-Current user type: ${input.context?.userType || "customer"}`;
+CATALOGUE DISPONIBLE:
+${catalogueInfo}
+
+REGLES:
+- Reponds TOUJOURS en francais
+- Sois chaleureux et precis
+- Utilise le catalogue ci-dessus pour repondre aux questions sur les produits
+- Ne fabrique pas de produits absents du catalogue
+- Pour les commandes/livraisons, demande le numero de commande
+- Propose des alternatives si un produit est indisponible
+
+Utilisateur: ${input.context?.userType || "client"}`;
       if (input.context?.productId) {
         systemPrompt += `
-The user is asking about a specific product (ID: ${input.context.productId}).`;
+Produit demande ID: ${input.context.productId}`;
       }
       if (input.context?.orderId) {
         systemPrompt += `
-The user is asking about a specific order (ID: ${input.context.orderId}).`;
+Commande demandee ID: ${input.context.orderId}`;
       }
       const conversationHistory = [];
       if (input.conversationId) {
