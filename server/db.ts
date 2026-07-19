@@ -559,7 +559,21 @@ export async function getProductsWithFilters(
   const db = await getDb();
   if (!db) return [];
 
-  let query = db.select().from(products).where(eq(products.isActive, true)) as any;
+  // Selectionner uniquement les champs nécessaires (pas les base64 complètes)
+  let query = db.select({
+    id: products.id,
+    title: products.title,
+    author: products.author,
+    publisher: products.publisher,
+    price: products.price,
+    stock: products.stock,
+    categoryId: products.categoryId,
+    coverImageUrl: products.coverImageUrl,
+    description: products.description,
+    isbn: products.isbn,
+    createdAt: products.createdAt,
+    isActive: products.isActive,
+  }).from(products).where(eq(products.isActive, true)) as any;
 
   // Apply category filter
   if (categoryId) {

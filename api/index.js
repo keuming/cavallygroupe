@@ -20175,7 +20175,20 @@ async function getUserReviewForProduct(userId, productId) {
 async function getProductsWithFilters(categoryId, minPrice, maxPrice, inStockOnly, sortBy, limit, offset) {
   const db = await getDb();
   if (!db) return [];
-  let query = db.select().from(products).where(eq(products.isActive, true));
+  let query = db.select({
+    id: products.id,
+    title: products.title,
+    author: products.author,
+    publisher: products.publisher,
+    price: products.price,
+    stock: products.stock,
+    categoryId: products.categoryId,
+    coverImageUrl: products.coverImageUrl,
+    description: products.description,
+    isbn: products.isbn,
+    createdAt: products.createdAt,
+    isActive: products.isActive
+  }).from(products).where(eq(products.isActive, true));
   if (categoryId) {
     query = query.where(eq(products.categoryId, categoryId));
   }
@@ -38226,7 +38239,7 @@ var appRouter = router({
         offset: external_exports.number().optional()
       })
     ).query(async ({ input }) => {
-      return getProductsWithFilters(
+      const results = await getProductsWithFilters(
         input.categoryId,
         input.minPrice,
         input.maxPrice,
@@ -38235,6 +38248,10 @@ var appRouter = router({
         input.limit,
         input.offset
       );
+      return results.map((p2) => ({
+        ...p2,
+        coverImageUrl: p2.coverImageUrl?.startsWith("data:") ? p2.coverImageUrl.substring(0, 100) + "__BASE64__" : p2.coverImageUrl
+      }));
     }),
     count: publicProcedure.input(
       external_exports.object({
