@@ -1,16 +1,6 @@
-// Service Worker désactivé - vide tous les caches et se désinstalle
-const CACHE_VERSION = 'cavally-v-reset-2026';
-self.addEventListener('install', (e) => {
-  e.waitUntil(self.skipWaiting());
-});
-self.addEventListener('activate', (e) => {
-  e.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
-      .then(() => self.registration.unregister())
-  );
-});
-self.addEventListener('fetch', (e) => {
-  e.respondWith(fetch(e.request));
-});
+const V="cavally-pwa-v1",S=V+"-s",A=V+"-a",I=V+"-i";
+self.addEventListener("install",e=>{e.waitUntil(caches.open(S).then(c=>c.addAll(["/","/cart","/login","/offline.html"]).catch(()=>{})).then(()=>self.skipWaiting()));});
+self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k.startsWith(V)===false).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});
+self.addEventListener("fetch",e=>{const q=e.request,u=new URL(q.url);if(q.method!=="GET"||u.protocol==="chrome-extension:")return;if(u.pathname.startsWith("/api/")){e.respondWith(fetch(q.clone()).then(r=>{if(r.ok){const c=r.clone();caches.open(A).then(ca=>ca.put(q,c));}return r;}).catch(()=>caches.match(q)));return;}if(q.destination==="image"){e.respondWith(caches.match(q).then(c=>{if(c)return c;return fetch(q).then(r=>{if(r.ok)caches.open(I).then(ca=>ca.put(q,r.clone()));return r;});}));return;}if(u.pathname.startsWith("/assets/")){e.respondWith(caches.match(q).then(c=>{if(c)return c;return fetch(q).then(r=>{if(r.ok)caches.open(S).then(ca=>ca.put(q,r.clone()));return r;});}));return;}if(q.destination==="document"){e.respondWith(fetch(q).then(r=>{if(r.ok)caches.open(S).then(ca=>ca.put(q,r.clone()));return r;}).catch(()=>caches.match(q).then(c=>c||caches.match("/offline.html"))));}});
+self.addEventListener("push",e=>{if(e.data){const d=e.data.json();e.waitUntil(self.registration.showNotification(d.title||"Cavally Livres",{body:d.body||"",icon:"/icon-192.png",data:{url:d.url||"/"}}));}});
+self.addEventListener("notificationclick",e=>{e.notification.close();const url=e.notification.data.url||"/";e.waitUntil(clients.matchAll({type:"window"}).then(ws=>{for(const w of ws){if(w.url===url)return w.focus();}return clients.openWindow(url);}));});
