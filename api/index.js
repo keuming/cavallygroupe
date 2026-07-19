@@ -16623,14 +16623,15 @@ function getTransporter() {
       }
     };
   }
+  const smtpUser = process.env.SMTP_USER || "";
+  const smtpPass = process.env.SMTP_PASS || "";
+  console.log("[SMTP] user:", smtpUser, "| hasPass:", Boolean(smtpPass), "| passLen:", smtpPass.length);
   return import_nodemailer.default.createTransport({
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
+    host: process.env.SMTP_HOST || "smtp-relay.brevo.com",
     port: Number(process.env.SMTP_PORT || 587),
-    secure: process.env.SMTP_SECURE === "true",
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS
-    }
+    secure: false,
+    auth: smtpUser && smtpPass ? { user: smtpUser, pass: smtpPass } : void 0,
+    tls: { rejectUnauthorized: false }
   });
 }
 function generateOrderConfirmationHTML(data) {
