@@ -30,9 +30,9 @@ export function PWAInstallBanner() {
     setIsIOS(ios);
 
     if (ios) {
-      // Sur iOS Safari, afficher la bannière manuelle après 3 secondes
-      const timer = setTimeout(() => setShowBanner(true), 3000);
-      return () => clearTimeout(timer);
+      // Sur iOS - afficher immédiatement si pas en standalone
+      setShowBanner(true);
+      return;
     }
 
     // Android/Desktop: intercepter l'événement natif
