@@ -1,103 +1,115 @@
 {
-  "name": "Cavaly Livres - Manuels & Oeuvres Littéraires",
-  "short_name": "Cavaly Livres",
-  "description": "Plateforme e-commerce de manuels scolaires, universitaires et oeuvres littéraires en Côte d'Ivoire",
+  "name": "Cavally Livres",
+  "short_name": "Cavally",
+  "description": "Manuels & Oeuvres Littéraires pour la Côte d'Ivoire",
   "start_url": "/",
-  "scope": "/",
   "display": "standalone",
-  "orientation": "portrait-primary",
-  "theme_color": "#FFC107",
-  "background_color": "#FFF9E6",
-  "categories": ["shopping", "books"],
-  "screenshots": [
-    {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663089638801/JchNQVPEyyYDQsQ28Z4FUv/cavaly-icon-512-NHsdptm9WRv9CNrWMR5gh2.webp",
-      "sizes": "540x720",
-      "type": "image/webp",
-      "form_factor": "narrow"
-    },
-    {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663089638801/JchNQVPEyyYDQsQ28Z4FUv/cavaly-icon-512-NHsdptm9WRv9CNrWMR5gh2.webp",
-      "sizes": "1280x720",
-      "type": "image/webp",
-      "form_factor": "wide"
-    }
+  "background_color": "#ffffff",
+  "theme_color": "#005f8a",
+  "orientation": "portrait",
+  "lang": "fr",
+  "categories": [
+    "education",
+    "shopping",
+    "books"
   ],
   "icons": [
     {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663089638801/JchNQVPEyyYDQsQ28Z4FUv/cavaly-icon-192-SUMLWo6rzWbZ8MTzxSiBpi.webp",
-      "sizes": "192x192",
-      "type": "image/webp",
-      "purpose": "any"
+      "src": "/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663089638801/JchNQVPEyyYDQsQ28Z4FUv/cavaly-icon-192-56Q3awQyztk9t9Y3Es3mWU.png",
+      "src": "/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663089638801/JchNQVPEyyYDQsQ28Z4FUv/cavaly-icon-512-NHsdptm9WRv9CNrWMR5gh2.webp",
-      "sizes": "512x512",
-      "type": "image/webp",
-      "purpose": "any"
+      "src": "/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663089638801/JchNQVPEyyYDQsQ28Z4FUv/cavaly-icon-512-JZQKMAQynPhqrLJbQdvLqJ.png",
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663089638801/JchNQVPEyyYDQsQ28Z4FUv/cavaly-icon-192-SUMLWo6rzWbZ8MTzxSiBpi.webp",
-      "sizes": "192x192",
-      "type": "image/webp",
-      "purpose": "maskable"
-    },
-    {
-      "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663089638801/JchNQVPEyyYDQsQ28Z4FUv/cavaly-icon-512-NHsdptm9WRv9CNrWMR5gh2.webp",
-      "sizes": "512x512",
-      "type": "image/webp",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
   ],
   "shortcuts": [
     {
-      "name": "Tous les produits",
-      "short_name": "Produits",
-      "description": "Voir tous les produits disponibles",
-      "url": "/?source=pwa_shortcut",
+      "name": "Catalogue",
+      "short_name": "Catalogue",
+      "url": "/",
       "icons": [
         {
-          "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663089638801/JchNQVPEyyYDQsQ28Z4FUv/cavaly-icon-192-SUMLWo6rzWbZ8MTzxSiBpi.webp",
-          "sizes": "192x192",
-          "type": "image/webp"
+          "src": "/icon-96.png",
+          "sizes": "96x96"
         }
       ]
     },
     {
-      "name": "Mon panier",
+      "name": "Mon Panier",
       "short_name": "Panier",
-      "description": "Accéder à mon panier",
-      "url": "/cart?source=pwa_shortcut",
+      "url": "/cart",
       "icons": [
         {
-          "src": "https://d2xsxph8kpxj0f.cloudfront.net/310519663089638801/JchNQVPEyyYDQsQ28Z4FUv/cavaly-icon-192-SUMLWo6rzWbZ8MTzxSiBpi.webp",
-          "sizes": "192x192",
-          "type": "image/webp"
+          "src": "/icon-96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Commander",
+      "short_name": "Commander",
+      "url": "/quick-order",
+      "icons": [
+        {
+          "src": "/icon-96.png",
+          "sizes": "96x96"
         }
       ]
     }
   ],
-  "share_target": {
-    "action": "/share",
-    "method": "POST",
-    "enctype": "application/x-www-form-urlencoded",
-    "params": {
-      "title": "title",
-      "text": "text",
-      "url": "url"
+  "screenshots": [
+    {
+      "src": "/screenshot-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/screenshot-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
     }
-  },
-  "prefer_related_applications": false
+  ]
 }
