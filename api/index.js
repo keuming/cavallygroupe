@@ -37149,6 +37149,7 @@ var emailRouter = router({
     })
   ).mutation(async ({ input }) => {
     try {
+      console.log("[Email] SMTP config:", { host: process.env.SMTP_HOST, port: process.env.SMTP_PORT, user: process.env.SMTP_USER, from: process.env.SMTP_FROM, hasPass: Boolean(process.env.SMTP_PASS) });
       const order = await getOrderById(input.orderId);
       if (!order || order.length === 0) {
         throw new Error("Order not found");
@@ -37191,6 +37192,7 @@ var emailRouter = router({
     })
   ).mutation(async ({ input }) => {
     try {
+      console.log("[Email] SMTP config:", { host: process.env.SMTP_HOST, port: process.env.SMTP_PORT, user: process.env.SMTP_USER, from: process.env.SMTP_FROM, hasPass: Boolean(process.env.SMTP_PASS) });
       const order = await getOrderById(input.orderId);
       if (!order || order.length === 0) {
         throw new Error("Order not found");
@@ -37230,6 +37232,7 @@ var emailRouter = router({
     })
   ).mutation(async ({ input }) => {
     try {
+      console.log("[Email] SMTP config:", { host: process.env.SMTP_HOST, port: process.env.SMTP_PORT, user: process.env.SMTP_USER, from: process.env.SMTP_FROM, hasPass: Boolean(process.env.SMTP_PASS) });
       const order = await getOrderById(input.orderId);
       if (!order || order.length === 0) {
         throw new Error("Order not found");
