@@ -37685,10 +37685,10 @@ Commande demandee ID: ${input.context.orderId}`;
         conversationId: input.conversationId || `conv_${Date.now()}`
       };
     } catch (error51) {
-      console.error("AI Chat Error:", error51);
+      console.error("AI Chat Error:", error51?.message || error51);
       return {
         success: false,
-        message: "Une erreur s'est produite. Veuillez r\xE9essayer ou contacter le support.",
+        message: error51?.message || "Une erreur inconnue",
         conversationId: input.conversationId
       };
     }

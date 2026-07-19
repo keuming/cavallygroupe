@@ -104,11 +104,11 @@ Utilisateur: ${input.context?.userType || 'client'}`;
           message: aiResponse,
           conversationId: input.conversationId || `conv_${Date.now()}`,
         };
-      } catch (error) {
-        console.error("AI Chat Error:", error);
+      } catch (error: any) {
+        console.error("AI Chat Error:", error?.message || error);
         return {
           success: false,
-          message: "Une erreur s'est produite. Veuillez réessayer ou contacter le support.",
+          message: error?.message || "Une erreur inconnue",
           conversationId: input.conversationId,
         };
       }
