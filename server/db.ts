@@ -568,7 +568,6 @@ export async function getProductsWithFilters(
     price: products.price,
     stock: products.stock,
     categoryId: products.categoryId,
-    coverImageUrl: products.coverImageUrl,
     description: products.description,
     isbn: products.isbn,
     createdAt: products.createdAt,
