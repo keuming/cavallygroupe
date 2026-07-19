@@ -1,5 +1,8 @@
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { z } from "zod";
+import { getDb } from "./db";
+import { products, categories } from "../drizzle/schema";
+import { eq } from "drizzle-orm";
 import { invokeLLM } from "./_core/llm";
 // Note: db import not needed for this version
 
