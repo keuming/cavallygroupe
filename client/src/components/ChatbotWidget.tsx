@@ -104,7 +104,7 @@ export function ChatbotWidget({
   }
 
   return (
-    <div className="fixed z-50 flex flex-col bg-white shadow-2xl overflow-hidden border border-gray-200 rounded-2xl bottom-0 right-0 left-0 h-[85vh] sm:bottom-6 sm:right-6 sm:left-auto sm:w-96 sm:h-[500px]">
+    <div className="fixed z-50 flex flex-col bg-white shadow-2xl overflow-hidden border border-gray-200 bottom-0 right-0 left-0 h-[90vh] rounded-t-2xl sm:rounded-2xl sm:bottom-6 sm:right-6 sm:left-auto sm:w-96 sm:h-[520px]">
       {/* Header */}
       <div className="bg-gradient-to-r from-[#005f8a] to-[#0080b8] text-white p-4 flex items-center justify-between">
         <div className="flex-1">
@@ -225,7 +225,7 @@ export function ChatbotWidget({
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={placeholder}
-              className="flex-1 max-h-20 resize-none min-h-9 text-sm"
+              className="flex-1 max-h-20 resize-none min-h-9 text-sm text-gray-900 bg-white placeholder:text-gray-400"
               rows={1}
             />
             <Button

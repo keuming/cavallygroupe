@@ -37603,7 +37603,7 @@ var aiChatRouter = router({
    * Send a message to the AI chatbot
    * The AI will respond based on the conversation context
    */
-  sendMessage: protectedProcedure.input(
+  sendMessage: publicProcedure.input(
     external_exports.object({
       conversationId: external_exports.string().optional(),
       message: external_exports.string().min(1).max(5e3),
@@ -37669,7 +37669,7 @@ The user is asking about a specific order (ID: ${input.context.orderId}).`;
   /**
    * Get AI chat suggestions for common questions
    */
-  getSuggestions: protectedProcedure.input(
+  getSuggestions: publicProcedure.input(
     external_exports.object({
       userType: external_exports.enum(["customer", "vendor", "admin"]).optional()
     })
@@ -37702,7 +37702,7 @@ The user is asking about a specific order (ID: ${input.context.orderId}).`;
   /**
    * Escalate to human support
    */
-  escalateToHuman: protectedProcedure.input(
+  escalateToHuman: publicProcedure.input(
     external_exports.object({
       conversationId: external_exports.string(),
       reason: external_exports.string().min(1).max(500),

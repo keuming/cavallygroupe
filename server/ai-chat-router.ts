@@ -1,4 +1,4 @@
-import { protectedProcedure, router } from "./_core/trpc";
+import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import { invokeLLM } from "./_core/llm";
 // Note: db import not needed for this version
@@ -12,7 +12,7 @@ export const aiChatRouter = router({
    * Send a message to the AI chatbot
    * The AI will respond based on the conversation context
    */
-  sendMessage: protectedProcedure
+  sendMessage: publicProcedure
     .input(
       z.object({
         conversationId: z.string().optional(),
@@ -93,7 +93,7 @@ Current user type: ${input.context?.userType || "customer"}`;
   /**
    * Get AI chat suggestions for common questions
    */
-  getSuggestions: protectedProcedure
+  getSuggestions: publicProcedure
     .input(
       z.object({
         userType: z.enum(["customer", "vendor", "admin"]).optional(),
@@ -130,7 +130,7 @@ Current user type: ${input.context?.userType || "customer"}`;
   /**
    * Escalate to human support
    */
-  escalateToHuman: protectedProcedure
+  escalateToHuman: publicProcedure
     .input(
       z.object({
         conversationId: z.string(),
