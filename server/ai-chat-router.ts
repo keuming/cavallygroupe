@@ -34,10 +34,8 @@ export const aiChatRouter = router({
         let catalogueInfo = '';
         if (db2) {
           try {
-            const { products: prods, categories: cats } = await import('../drizzle/schema');
-            const { eq: eqOp } = await import('drizzle-orm');
-            const produits = await db2.select().from(prods).where(eqOp(prods.isActive, true)).limit(20);
-            const catsData = await db2.select().from(cats);
+            const produits = await db2.select().from(products).where(eq(products.isActive, true)).limit(20);
+            const catsData = await db2.select().from(categories);
             const catMap: Record<number, string> = {};
             for (const cat of catsData) catMap[cat.id] = cat.name;
             catalogueInfo = produits.map((p: any) =>
