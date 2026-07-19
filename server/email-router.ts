@@ -47,7 +47,8 @@ export const emailRouter = router({
           message: success ? 'Email sent successfully' : 'Failed to send email',
         };
       } catch (error) {
-        console.error('[Email Router] Error sending order confirmation:', error);
+        console.error('[Email Router] Error:', error?.message || error);
+        throw error;
         return {
           success: false,
           message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,

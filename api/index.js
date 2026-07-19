@@ -37173,7 +37173,8 @@ var emailRouter = router({
         message: success2 ? "Email sent successfully" : "Failed to send email"
       };
     } catch (error51) {
-      console.error("[Email Router] Error sending order confirmation:", error51);
+      console.error("[Email Router] Error:", error51?.message || error51);
+      throw error51;
       return {
         success: false,
         message: `Error: ${error51 instanceof Error ? error51.message : "Unknown error"}`
