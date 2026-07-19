@@ -50,26 +50,30 @@ export default function AdminDashboard() {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setUploadProgress(10);
-
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 85) { clearInterval(interval); return prev; }
-        return Math.min(prev + Math.random() * 20, 85);
-      });
-    }, 150);
-
+    const CLOUD = "xau4buvq";
+    const PRESET = "xzyaf71u";
     try {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const base64 = event.target?.result as string;
-        clearInterval(interval);
-        setUploadProgress(100);
-        // Utiliser le callback fonctionnel pour éviter la closure périmée
-        setFormData((prev) => ({ ...prev, imageUrl: base64 }));
-        // NE PAS remettre uploadProgress à 0 — ça fait disparaître le preview
-      };
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("upload_preset", PRESET);
+      fd.append("folder", "cavally-livres");
+      const xhr = new XMLHttpRequest();
+      xhr.upload.addEventListener("progress", (ev) => {
+        if (ev.lengthComputable) setUploadProgress(Math.round((ev.loaded/ev.total)*90)+5);
+      });
+      xhr.addEventListener("load", () => {
+        const data = JSON.parse(xhr.responseText);
+        if (data.secure_url) {
+          setUploadProgress(100);
+          setFormData((prev) => ({ ...prev, imageUrl: data.secure_url }));
+        } else { setUploadProgress(0); }
+      });
+      xhr.addEventListener("error", () => setUploadProgress(0));
+      xhr.open("POST", `https://api.cloudinary.com/v1_1/${CLOUD}/image/upload`);
+      xhr.send(fd);
+    } catch (err) { setUploadProgress(0); }
+  };
       reader.onerror = () => {
         clearInterval(interval);
         setUploadProgress(0);

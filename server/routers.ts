@@ -263,7 +263,7 @@ export const appRouter = router({
         })
       )
       .query(async ({ input }) => {
-        return getProductsWithFilters(
+        const results = await getProductsWithFilters(
           input.categoryId,
           input.minPrice,
           input.maxPrice,
@@ -272,6 +272,13 @@ export const appRouter = router({
           input.limit,
           input.offset
         );
+        // Optimiser: ne pas envoyer les base64 complètes dans les listes
+        return results.map((p: any) => ({
+          ...p,
+          coverImageUrl: p.coverImageUrl?.startsWith('data:')
+            ? p.coverImageUrl.substring(0, 100) + '__BASE64__'
+            : p.coverImageUrl,
+        }));
       }),
     count: publicProcedure
       .input(
