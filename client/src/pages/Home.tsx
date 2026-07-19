@@ -11,6 +11,7 @@ import { BookOpen, ShoppingCart, Menu, X, Upload, Search, Truck, Lock, Award, Se
 import { useDarkMode } from "@/hooks/useDarkMode";
 import { useNotifications } from "@/hooks/useNotifications";
 import { getLoginUrl } from "@/const";
+import { PWAInstallBanner } from "@/components/PWAInstallBanner";
 import { ChatbotWidget, type Message } from "@/components/ChatbotWidget";
 import { NotificationDropdown } from "@/components/NotificationDropdown";
 import { ModernEducationMenu } from "@/components/ModernEducationMenu";
@@ -546,6 +547,9 @@ export default function Home() {
           )}
         </main>
       </div>
+
+      {/* PWA Install Banner */}
+      <PWAInstallBanner />
 
       {/* Chatbot Widget */}
       <ChatbotWidget
