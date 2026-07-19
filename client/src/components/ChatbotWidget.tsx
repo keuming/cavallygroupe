@@ -104,7 +104,7 @@ export function ChatbotWidget({
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col w-96 h-96 bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200">
+    <div className="fixed z-50 flex flex-col bg-white shadow-2xl overflow-hidden border border-gray-200 rounded-2xl bottom-0 right-0 left-0 h-[85vh] sm:bottom-6 sm:right-6 sm:left-auto sm:w-96 sm:h-[500px]">
       {/* Header */}
       <div className="bg-gradient-to-r from-[#005f8a] to-[#0080b8] text-white p-4 flex items-center justify-between">
         <div className="flex-1">
