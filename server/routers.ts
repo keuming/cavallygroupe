@@ -50,6 +50,7 @@ import {
   disableUser,
   enableUser,
   updateUserRole,
+  updateUserProfile,
   getApprovedUsersCount,
   getPendingUsersCount,
   addOrderItems as addOrderItemsDb,

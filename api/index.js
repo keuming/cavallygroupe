@@ -14328,7 +14328,7 @@ __export(db_exports, {
   updateSupplyListStatus: () => updateSupplyListStatus,
   updateTutorStatus: () => updateTutorStatus,
   updateUserLastSignedIn: () => updateUserLastSignedIn,
-  updateUserProfile: () => updateUserProfile2,
+  updateUserProfile: () => updateUserProfile,
   updateUserRole: () => updateUserRole,
   upsertUser: () => upsertUser
 });
@@ -15107,7 +15107,7 @@ async function getPendingUsersCount() {
   const result = await db.select({ count: sql`COUNT(*)` }).from(users).where(eq(users.isApproved, false));
   return Number(result[0]?.count ?? 0);
 }
-async function updateUserProfile2(userId, data) {
+async function updateUserProfile(userId, data) {
   const db = await getDb();
   if (!db) return null;
   const updateData = { updatedAt: /* @__PURE__ */ new Date() };
