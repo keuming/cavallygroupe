@@ -13887,6 +13887,9 @@ var init_schema2 = __esm({
       description: text("description"),
       icon: varchar("icon", { length: 50 }),
       displayOrder: integer("displayOrder").default(0),
+      color: varchar("color", { length: 20 }).default("#005f8a"),
+      bannerImage: text("bannerImage"),
+      productCount: integer("productCount").default(0),
       isActive: boolean("isActive").default(true).notNull(),
       createdAt: timestamp("createdAt").defaultNow().notNull(),
       updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => /* @__PURE__ */ new Date())
@@ -13903,6 +13906,9 @@ var init_schema2 = __esm({
       name: varchar("name", { length: 100 }).notNull(),
       slug: varchar("slug", { length: 100 }).notNull().unique(),
       displayOrder: integer("displayOrder").default(0),
+      color: varchar("color", { length: 20 }).default("#005f8a"),
+      bannerImage: text("bannerImage"),
+      productCount: integer("productCount").default(0),
       isActive: boolean("isActive").default(true).notNull(),
       createdAt: timestamp("createdAt").defaultNow().notNull(),
       updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => /* @__PURE__ */ new Date())
@@ -13914,6 +13920,9 @@ var init_schema2 = __esm({
       slug: varchar("slug", { length: 100 }).notNull().unique(),
       icon: varchar("icon", { length: 50 }),
       displayOrder: integer("displayOrder").default(0),
+      color: varchar("color", { length: 20 }).default("#005f8a"),
+      bannerImage: text("bannerImage"),
+      productCount: integer("productCount").default(0),
       isActive: boolean("isActive").default(true).notNull(),
       createdAt: timestamp("createdAt").defaultNow().notNull(),
       updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => /* @__PURE__ */ new Date())
@@ -13932,6 +13941,9 @@ var init_schema2 = __esm({
       stock: integer("stock").notNull().default(0),
       coverImageUrl: text("coverImageUrl"),
       vendorId: integer("vendorId"),
+      color: varchar("color", { length: 20 }).default("#005f8a"),
+      bannerImage: text("bannerImage"),
+      productCount: integer("productCount").default(0),
       isActive: boolean("isActive").default(true).notNull(),
       createdAt: timestamp("createdAt").defaultNow().notNull(),
       updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => /* @__PURE__ */ new Date())
@@ -14136,6 +14148,9 @@ var init_schema2 = __esm({
       vendorId: integer("vendorId").notNull(),
       orderId: integer("orderId"),
       lastMessageAt: timestamp("lastMessageAt").defaultNow().notNull(),
+      color: varchar("color", { length: 20 }).default("#005f8a"),
+      bannerImage: text("bannerImage"),
+      productCount: integer("productCount").default(0),
       isActive: boolean("isActive").default(true).notNull(),
       createdAt: timestamp("createdAt").defaultNow().notNull(),
       updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => /* @__PURE__ */ new Date())
@@ -36947,6 +36962,26 @@ var adminRouter = router({
       console.error("[Admin Router] Error updating product:", error51);
       throw error51;
     }
+  }),
+  // Update Category
+  updateCategory: adminProcedure2.input(external_exports.object({
+    id: external_exports.number(),
+    name: external_exports.string().optional(),
+    description: external_exports.string().optional(),
+    icon: external_exports.string().optional(),
+    color: external_exports.string().optional(),
+    isActive: external_exports.boolean().optional()
+  })).mutation(async ({ input }) => {
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+    const updateData = { updatedAt: /* @__PURE__ */ new Date() };
+    if (input.name !== void 0) updateData.name = input.name;
+    if (input.description !== void 0) updateData.description = input.description;
+    if (input.icon !== void 0) updateData.icon = input.icon;
+    if (input.color !== void 0) updateData.color = input.color;
+    if (input.isActive !== void 0) updateData.isActive = input.isActive;
+    await db.update(categories).set(updateData).where(eq(categories.id, input.id));
+    return { success: true };
   }),
   // Delete Product
   deleteProduct: adminProcedure2.input(external_exports.object({ id: external_exports.number() })).mutation(async ({ input }) => {

@@ -167,6 +167,29 @@ export const adminRouter = router({
       }
     }),
 
+  // Update Category
+  updateCategory: adminProcedure
+    .input(z.object({
+      id: z.number(),
+      name: z.string().optional(),
+      description: z.string().optional(),
+      icon: z.string().optional(),
+      color: z.string().optional(),
+      isActive: z.boolean().optional(),
+    }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const updateData: Record<string, unknown> = { updatedAt: new Date() };
+      if (input.name !== undefined) updateData.name = input.name;
+      if (input.description !== undefined) updateData.description = input.description;
+      if (input.icon !== undefined) updateData.icon = input.icon;
+      if (input.color !== undefined) updateData.color = input.color;
+      if (input.isActive !== undefined) updateData.isActive = input.isActive;
+      await db.update(categories).set(updateData).where(eq(categories.id, input.id));
+      return { success: true };
+    }),
+
   // Delete Product
   deleteProduct: adminProcedure
     .input(z.object({ id: z.number() }))
