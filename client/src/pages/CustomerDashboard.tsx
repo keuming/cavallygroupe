@@ -51,7 +51,9 @@ export default function CustomerDashboard() {
   const handleLogout = () => {
     logoutMutation.mutate(undefined, {
       onSuccess: () => {
-        navigate("/");
+        localStorage.removeItem("cavally_token");
+        localStorage.removeItem("cavally_cart");
+        window.location.href = "/";
       },
     });
   };
