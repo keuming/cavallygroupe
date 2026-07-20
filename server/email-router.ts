@@ -47,12 +47,12 @@ export const emailRouter = router({
           success,
           message: success ? 'Email sent successfully' : 'Failed to send email',
         };
-      } catch (error) {
-        console.error('[Email Router] Error:', error?.message || error);
-        throw error;
+      } catch (error: unknown) {
+        const errMsg = error instanceof Error ? error.message : 'Unknown error';
+        console.error('[Email Router] Error:', errMsg);
         return {
           success: false,
-          message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          message: `Error: ${errMsg}`,
         };
       }
     }),

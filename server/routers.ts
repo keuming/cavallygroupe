@@ -513,10 +513,12 @@ export const appRouter = router({
                 apiSecret: process.env.SMS_API_SECRET,
                 senderName: 'CavallyLivres',
               });
-              await svc.sendSMS(
-                input.customerPhone,
-                `Bonjour ${input.customerName}, votre commande ${orderNumber} a bien été reçue ! Montant: ${input.totalAmount} FCFA. Suivez votre commande sur cavallygroupe.com`
-              );
+              await svc.sendSMS({
+                to: input.customerPhone,
+                message: `Bonjour ${input.customerName}, votre commande ${orderNumber} a bien été reçue ! Montant: ${input.totalAmount} FCFA. Suivez votre commande sur cavallygroupe.com`,
+                orderId: orderId,
+                status: 'pending',
+              });
             } catch(smsErr) { console.error('[Order] SMS error:', smsErr); }
           }
 

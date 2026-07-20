@@ -37175,11 +37175,11 @@ var emailRouter = router({
         message: success2 ? "Email sent successfully" : "Failed to send email"
       };
     } catch (error51) {
-      console.error("[Email Router] Error:", error51?.message || error51);
-      throw error51;
+      const errMsg = error51 instanceof Error ? error51.message : "Unknown error";
+      console.error("[Email Router] Error:", errMsg);
       return {
         success: false,
-        message: `Error: ${error51 instanceof Error ? error51.message : "Unknown error"}`
+        message: `Error: ${errMsg}`
       };
     }
   }),
@@ -38669,10 +38669,12 @@ var appRouter = router({
               apiSecret: process.env.SMS_API_SECRET,
               senderName: "CavallyLivres"
             });
-            await svc.sendSMS(
-              input.customerPhone,
-              `Bonjour ${input.customerName}, votre commande ${orderNumber} a bien \xE9t\xE9 re\xE7ue ! Montant: ${input.totalAmount} FCFA. Suivez votre commande sur cavallygroupe.com`
-            );
+            await svc.sendSMS({
+              to: input.customerPhone,
+              message: `Bonjour ${input.customerName}, votre commande ${orderNumber} a bien \xE9t\xE9 re\xE7ue ! Montant: ${input.totalAmount} FCFA. Suivez votre commande sur cavallygroupe.com`,
+              orderId,
+              status: "pending"
+            });
           } catch (smsErr) {
             console.error("[Order] SMS error:", smsErr);
           }

@@ -85,7 +85,7 @@ export function PWAInstallBanner() {
             <p className="font-bold text-gray-900 text-sm">Installer Cavally Livres</p>
             <p className="text-xs text-gray-500 mt-0.5">
               {isIOS
-                ? "Appuyez sur ⎙ puis "Sur l'écran d'accueil""
+                ? "Tap le bouton Partager puis Sur l ecran d accueil"
                 : "Accédez rapidement à votre librairie depuis votre écran d'accueil"}
             </p>
             {!isIOS && (

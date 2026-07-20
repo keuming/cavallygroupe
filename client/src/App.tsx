@@ -26,7 +26,6 @@ import { CheckoutPayment } from "./pages/CheckoutPayment";
 import { CheckoutConfirmation } from "./pages/CheckoutConfirmation";
 import { Account } from "./pages/Account";
 import QRCodeGenerator from "./pages/QRCodeGenerator";
-import { PWAPrompt } from "./components/PWAPrompt";
 import AccountTypeSelection from "./pages/AccountTypeSelection";
 import CustomerDashboard from "./pages/CustomerDashboard";
 import VendorDashboard from "./pages/VendorDashboard";
@@ -123,7 +122,6 @@ function App() {
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster />
-          <PWAPrompt />
           <Router />
         </TooltipProvider>
       </ThemeProvider>

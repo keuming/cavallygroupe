@@ -74,18 +74,6 @@ export default function AdminDashboard() {
       xhr.send(fd);
     } catch (err) { setUploadProgress(0); }
   };
-      reader.onerror = () => {
-        clearInterval(interval);
-        setUploadProgress(0);
-        console.error("Erreur lecture fichier");
-      };
-      reader.readAsDataURL(file);
-    } catch (error) {
-      clearInterval(interval);
-      setUploadProgress(0);
-      console.error("Error uploading image:", error);
-    }
-  };
 
   const handleAddProduct = async () => {
     if (!formData.title || !formData.author || !formData.category || !formData.price || !formData.stock) {

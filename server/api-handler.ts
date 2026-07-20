@@ -20,6 +20,6 @@ app.get("/api/debug", (_req, res) => {
 app.use("/api/webhooks", webhookRoutes);
 app.use("/api/trpc", createExpressMiddleware({ router: appRouter, createContext }));
 
-export default function handler(req, res) {
+export default function handler(req: any, res: any) {
   return app(req, res);
 }
