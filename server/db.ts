@@ -1181,3 +1181,14 @@ export async function getPendingUsersCount() {
 
   return Number(result[0]?.count ?? 0);
 }
+
+export async function updateUserProfile(userId: number, data: { name?: string; phone?: string }) {
+  const db = await getDb();
+  if (!db) return null;
+  const updateData: Record<string, unknown> = { updatedAt: new Date() };
+  if (data.name !== undefined) updateData.name = data.name;
+  if (data.phone !== undefined) updateData.phone = data.phone;
+  await db.update(users).set(updateData).where(eq(users.id, userId));
+  const updated = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  return updated[0] || null;
+}

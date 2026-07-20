@@ -163,6 +163,16 @@ export const appRouter = router({
         return { success: true, user, token };
       }),
 
+    updateProfile: protectedProcedure
+      .input(z.object({
+        name: z.string().optional(),
+        phone: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }: any) => {
+        const updated = await updateUserProfile(ctx.user.id, input);
+        return { success: true, user: updated };
+      }),
+
     logout: publicProcedure.mutation(({ ctx }: any) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });

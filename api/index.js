@@ -14328,6 +14328,7 @@ __export(db_exports, {
   updateSupplyListStatus: () => updateSupplyListStatus,
   updateTutorStatus: () => updateTutorStatus,
   updateUserLastSignedIn: () => updateUserLastSignedIn,
+  updateUserProfile: () => updateUserProfile2,
   updateUserRole: () => updateUserRole,
   upsertUser: () => upsertUser
 });
@@ -15105,6 +15106,16 @@ async function getPendingUsersCount() {
   if (!db) throw new Error("Database not available");
   const result = await db.select({ count: sql`COUNT(*)` }).from(users).where(eq(users.isApproved, false));
   return Number(result[0]?.count ?? 0);
+}
+async function updateUserProfile2(userId, data) {
+  const db = await getDb();
+  if (!db) return null;
+  const updateData = { updatedAt: /* @__PURE__ */ new Date() };
+  if (data.name !== void 0) updateData.name = data.name;
+  if (data.phone !== void 0) updateData.phone = data.phone;
+  await db.update(users).set(updateData).where(eq(users.id, userId));
+  const updated = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  return updated[0] || null;
 }
 var _db;
 var init_db2 = __esm({
@@ -38382,6 +38393,13 @@ var appRouter = router({
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
       return { success: true, user, token };
+    }),
+    updateProfile: protectedProcedure.input(external_exports.object({
+      name: external_exports.string().optional(),
+      phone: external_exports.string().optional()
+    })).mutation(async ({ ctx, input }) => {
+      const updated = await updateUserProfile(ctx.user.id, input);
+      return { success: true, user: updated };
     }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
