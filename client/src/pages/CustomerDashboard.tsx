@@ -53,7 +53,11 @@ export default function CustomerDashboard() {
       onSuccess: () => {
         localStorage.removeItem("cavally_token");
         localStorage.removeItem("cavally_cart");
-        window.location.href = "/";
+        // Vider le cache SW pour forcer rechargement frais
+        if ('caches' in window) {
+          caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+        }
+        setTimeout(() => { window.location.href = "/"; }, 100);
       },
     });
   };

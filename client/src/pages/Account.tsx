@@ -51,7 +51,12 @@ export function Account() {
   const handleLogout = () => {
     logoutMutation.mutate(undefined, {
       onSuccess: () => {
-        navigate('/');
+        localStorage.removeItem('cavally_token');
+        localStorage.removeItem('cavally_cart');
+        if ('caches' in window) {
+          caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+        }
+        setTimeout(() => { window.location.href = '/'; }, 100);
       },
     });
   };
