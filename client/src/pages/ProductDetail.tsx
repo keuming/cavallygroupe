@@ -10,6 +10,7 @@ import SocialShareButtons from "@/components/SocialShareButtons";
 import { useState } from "react";
 import { Star, ShoppingCart, ArrowLeft, Send, BookOpen, User, Calendar, Tag, AlertCircle, Check, Loader } from "lucide-react";
 import { getLoginUrl } from "@/const";
+import { AddToCartModal } from "@/components/AddToCartModal";
 import { addToLocalCart } from "@/hooks/useLocalCart";
 import { useToast, ToastContainer } from "@/components/Toast";
 
@@ -21,6 +22,8 @@ export default function ProductDetail() {
   const { toasts, removeToast, success, error, warning } = useToast();
 
   const [quantity, setQuantity] = useState(1);
+  const [showCartModal, setShowCartModal] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
   const [reviewTitle, setReviewTitle] = useState("");
   const [reviewContent, setReviewContent] = useState("");
   const [reviewRating, setReviewRating] = useState(5);
@@ -112,7 +115,8 @@ export default function ProductDetail() {
       { productId: product.id, quantity },
       {
         onSuccess: () => {
-          success(`${product.title} ajouté au panier (x${quantity}) ✓`);
+          setShowCartModal(true);
+          setCartCount(prev => prev + quantity);
           setQuantity(1);
           // Invalider le cache du panier pour mettre à jour le badge
           utils.cart.list.invalidate();
@@ -177,6 +181,14 @@ export default function ProductDetail() {
   const categoryName = categories?.find(c => c.id === product.categoryId)?.name || "Catégorie inconnue";
 
   return (
+    <>
+    <AddToCartModal
+      isOpen={showCartModal}
+      onClose={() => setShowCartModal(false)}
+      product={{ title: product?.title || '', price: product?.price || '0', coverImageUrl: product?.coverImageUrl || undefined }}
+      quantity={quantity}
+      cartCount={cartCount}
+    />
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       <ToastContainer toasts={toasts} onRemove={removeToast} />
       {/* Navigation */}
@@ -478,5 +490,5 @@ export default function ProductDetail() {
         </div>
       </div>
     </div>
-  );
+  </>);
 }
