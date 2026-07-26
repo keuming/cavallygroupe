@@ -18,6 +18,32 @@ export default function AdminDashboard() {
   const [modal, setModal] = useState<{type: string; list: any} | null>(null);
   const [quoteItems, setQuoteItems] = useState<QuoteItem[]>([{designation:"",quantite:1,prixUnitaire:0}]);
   const [productForm, setProductForm] = useState({title:"",author:"",price:"",stock:"",categoryId:"1",description:"",coverImageUrl:""});
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadProgress(10);
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("upload_preset", "xzyaf71u");
+    fd.append("folder", "cavally-livres");
+    const xhr = new XMLHttpRequest();
+    xhr.upload.addEventListener("progress", (ev) => {
+      if (ev.lengthComputable) setUploadProgress(Math.round((ev.loaded/ev.total)*90)+5);
+    });
+    xhr.addEventListener("load", () => {
+      const data = JSON.parse(xhr.responseText);
+      if (data.secure_url) {
+        setUploadProgress(100);
+        setProductForm(prev => ({...prev, coverImageUrl: data.secure_url}));
+        setTimeout(() => setUploadProgress(0), 1000);
+      } else { setUploadProgress(0); }
+    });
+    xhr.addEventListener("error", () => setUploadProgress(0));
+    xhr.open("POST", "https://api.cloudinary.com/v1_1/xau4buvq/image/upload");
+    xhr.send(fd);
+  };
   const [search, setSearch] = useState("");
 
   const { data: me } = trpc.auth.me.useQuery();
@@ -821,12 +847,41 @@ export default function AdminDashboard() {
                   <h3 className="font-bold text-lg">{modal.type === "add-product" ? "Ajouter un produit" : "Modifier le produit"}</h3>
                 </div>
                 <div className="p-5 space-y-4">
+                  {/* Upload image */}
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-1 block">Photo du livre</label>
+                    <div className="flex gap-3 items-start">
+                      <div className="w-20 h-24 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0 border border-gray-200">
+                        {productForm.coverImageUrl ? (
+                          <img src={productForm.coverImageUrl} alt="cover" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-3xl">📚</div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <input type="file" accept="image/*" onChange={handleImageUpload}
+                          className="w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-[#005f8a] file:text-white file:text-sm file:cursor-pointer hover:file:bg-[#004a6b]"
+                        />
+                        {uploadProgress > 0 && uploadProgress < 100 && (
+                          <div className="mt-2 h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-[#005f8a] rounded-full transition-all" style={{width: uploadProgress + "%"}} />
+                          </div>
+                        )}
+                        {uploadProgress === 100 && <p className="text-green-500 text-xs mt-1">✓ Image uploadée</p>}
+                        {productForm.coverImageUrl && (
+                          <input value={productForm.coverImageUrl} onChange={e => setProductForm(p=>({...p,coverImageUrl:e.target.value}))}
+                            className="mt-2 w-full border border-gray-200 rounded-lg px-2 py-1 text-xs text-gray-400 outline-none" placeholder="ou collez une URL image" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Champs texte */}
                   {[
                     {label:"Titre *", field:"title", type:"text", placeholder:"Nom du livre"},
                     {label:"Auteur", field:"author", type:"text", placeholder:"Nom de l'auteur"},
                     {label:"Prix (FCFA) *", field:"price", type:"number", placeholder:"Ex: 5000"},
                     {label:"Stock *", field:"stock", type:"number", placeholder:"Ex: 10"},
-                    {label:"URL Image (Cloudinary)", field:"coverImageUrl", type:"text", placeholder:"https://res.cloudinary.com/..."},
                     {label:"Description", field:"description", type:"text", placeholder:"Description courte"},
                   ].map(f => (
                     <div key={f.field}>
@@ -840,6 +895,22 @@ export default function AdminDashboard() {
                       />
                     </div>
                   ))}
+
+                  {/* Catégorie */}
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-1 block">Catégorie</label>
+                    <select value={productForm.categoryId} onChange={e=>setProductForm(p=>({...p,categoryId:e.target.value}))}
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-[#005f8a] outline-none bg-white">
+                      <option value="1">📚 Manuels Scolaires</option>
+                      <option value="2">📖 Littérature</option>
+                      <option value="3">✏️ Parascolaire</option>
+                      <option value="4">🎒 Fournitures Scolaires</option>
+                      <option value="5">✝️ Livres Religieux</option>
+                      <option value="6">📘 Dictionnaires</option>
+                      <option value="7">🔬 Sciences</option>
+                      <option value="8">🎨 Arts et Culture</option>
+                    </select>
+                  </div>
                 </div>
                 <div className="p-5 border-t flex gap-3">
                   <button onClick={() => setModal(null)} className="flex-1 py-2 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50">Annuler</button>
