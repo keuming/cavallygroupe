@@ -96,11 +96,29 @@ export default function AdminDashboard() {
   };
 
   const downloadFile = (list: any) => {
+    if (!list.fileData) return alert("Fichier non disponible en cache. Le client doit renvoyer sa liste.");
+    try {
+      const a = document.createElement("a");
+      a.href = list.fileData;
+      a.download = list.fileName || "liste-client";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch(e) { alert("Erreur téléchargement: " + e); }
+  };
+
+  const viewFile = (list: any) => {
     if (!list.fileData) return alert("Fichier non disponible");
-    const a = document.createElement("a");
-    a.href = list.fileData;
-    a.download = list.fileName;
-    a.click();
+    // Ouvrir dans un nouvel onglet
+    const win = window.open();
+    if (!win) return;
+    if (list.fileType === "image") {
+      win.document.write(`<img src="${list.fileData}" style="max-width:100%" />`);
+    } else if (list.fileType === "pdf") {
+      win.location.href = list.fileData;
+    } else {
+      win.document.write(`<pre style="white-space:pre-wrap;font-family:sans-serif;padding:20px">${list.extractedText || "Aperçu non disponible pour ce type de fichier. Utilisez Télécharger."}</pre>`);
+    }
   };
 
   // Parser le contenu d'un fichier Word/texte pour extraire les items
@@ -120,23 +138,29 @@ export default function AdminDashboard() {
     if (list.quotedItems) {
       try { setQuoteItems(JSON.parse(list.quotedItems)); } catch { setQuoteItems([{designation:"",quantite:1,prixUnitaire:0}]); }
     } else if (list.fileData && (list.fileType === "word" || list.fileType === "document")) {
-      // Parser le Word directement dans le navigateur
+      // Parser le Word: extraire le XML depuis le base64
       try {
         const base64 = list.fileData.split(",")[1] || list.fileData;
         const binary = atob(base64);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-        const result = await mammoth.extractRawText({ arrayBuffer: bytes.buffer });
-        const lines = result.value.split("
-");
-        const parsed: QuoteItem[] = [];
-        lines.forEach((line: string) => {
-          const clean = line.trim().replace(/[*_]+/g, "").trim();
-          const match = clean.match(/^(\d+)\s+(.{3,})/);
-          if (match && parsed.length < 50) {
-            parsed.push({ designation: match[2].trim().substring(0, 100), quantite: parseInt(match[1]), prixUnitaire: 0 });
+        // Chercher le contenu XML du document Word dans le binaire
+        const xmlStart = binary.indexOf("<w:body");
+        const xmlEnd = binary.indexOf("</w:body>");
+        let parsed: QuoteItem[] = [];
+        if (xmlStart > -1 && xmlEnd > -1) {
+          const xml = binary.substring(xmlStart, xmlEnd + 9);
+          // Extraire le texte des balises w:t
+          const textMatches = xml.match(/<w:t[^>]*>([^<]+)<\/w:t>/g) || [];
+          const fullText = textMatches.map((m: string) => m.replace(/<[^>]+>/g, "")).join(" ");
+          const lines = fullText.split(/\.(?=\s*\d)|(?<=\d{1,2})\s+(?=[A-ZÀ-Ÿa-zà-ÿ])/);
+          const regex = /(\d+)\s+([A-ZÀ-Ÿa-zà-ÿ][^\d]{5,80})/g;
+          let m;
+          while ((m = regex.exec(fullText)) !== null && parsed.length < 60) {
+            const designation = m[2].trim().replace(/\s+/g, " ").substring(0, 100);
+            if (designation.length > 3) {
+              parsed.push({ designation, quantite: parseInt(m[1]), prixUnitaire: 0 });
+            }
           }
-        });
+        }
         setQuoteItems(parsed.length > 0 ? parsed : [{designation:"",quantite:1,prixUnitaire:0}]);
       } catch(e) { setQuoteItems([{designation:"",quantite:1,prixUnitaire:0}]); }
     } else if (list.extractedText) {
@@ -459,8 +483,13 @@ export default function AdminDashboard() {
                               {actionMenu === list.id && (
                                 <div className="absolute right-3 top-12 bg-white rounded-xl shadow-xl border border-gray-100 py-1 w-52 z-50">
                                   <button onClick={() => openModal("view", list)} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
-                                    <Eye className="w-4 h-4 text-blue-500" /> Afficher la liste
+                                    <Eye className="w-4 h-4 text-blue-500" /> Voir les détails
                                   </button>
+                                  {list.fileData && (
+                                    <button onClick={() => { viewFile(list); setActionMenu(null); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                                      <Eye className="w-4 h-4 text-green-500" /> Afficher le fichier
+                                    </button>
+                                  )}
                                   {list.fileData && (
                                     <button onClick={() => { downloadFile(list); setActionMenu(null); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
                                       <Download className="w-4 h-4 text-gray-500" /> Télécharger fichier

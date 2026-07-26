@@ -740,7 +740,7 @@ export const appRouter = router({
             const DB = await getDb();
             const { supplyLists: sl } = await import('../drizzle/schema');
             const { eq: eqOp } = await import('drizzle-orm');
-            await DB.update(sl).set({ extractedText }).where(eqOp(sl.id, result.id));
+            if (DB) await DB.update(sl).set({ extractedText }).where(eqOp(sl.id, result.id));
           } catch(e) { console.error('[SupplyList] Save text error:', e); }
         }
 
