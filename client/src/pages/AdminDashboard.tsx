@@ -7,7 +7,6 @@ import {
   Clock, AlertCircle, XCircle, Phone, Mail,
   Download, Plus, Trash2, Edit, Search
 } from "lucide-react";
-import { OrderManagementPanel } from "@/components/OrderManagementPanel";
 
 // ---- Types ----
 interface QuoteItem { designation: string; quantite: number; prixUnitaire: number; }
@@ -22,6 +21,7 @@ export default function AdminDashboard() {
   const [search, setSearch] = useState("");
 
   const { data: supplyLists, refetch: refetchLists } = trpc.supplyLists.getAll.useQuery();
+  const { data: allOrders } = trpc.orderManagement.getAllOrders.useQuery();
   const { data: stats } = trpc.admin.getStats.useQuery();
   const { data: products, refetch: refetchProducts } = trpc.admin.listProducts.useQuery({});
   const { data: users } = trpc.admin.listUsers.useQuery();
@@ -305,8 +305,85 @@ export default function AdminDashboard() {
         {/* ===== ONGLET COMMANDES ===== */}
         {tab === "commandes" && (
           <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Commandes directes</h2>
-            <OrderManagementPanel />
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+              {[
+                { label:"Nouvelles",   count: allOrders?.filter((o:any)=>o.status==="pending").length||0,    color:"text-blue-600 bg-blue-50" },
+                { label:"Confirmées",  count: allOrders?.filter((o:any)=>o.status==="confirmed").length||0,  color:"text-green-600 bg-green-50" },
+                { label:"En livraison",count: allOrders?.filter((o:any)=>o.status==="in_transit").length||0, color:"text-yellow-600 bg-yellow-50" },
+                { label:"Total",       count: allOrders?.length||0,                                          color:"text-gray-600 bg-gray-100" },
+              ].map(s => (
+                <div key={s.label} className={`${s.color} rounded-xl p-4`}>
+                  <p className="text-2xl font-bold">{s.count}</p>
+                  <p className="text-xs mt-0.5">{s.label}</p>
+                </div>
+              ))}
+            </div>
+            <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+              <div className="p-4 border-b bg-gray-50 flex items-center justify-between">
+                <h3 className="font-bold text-gray-900">Commandes ({allOrders?.length||0})</h3>
+              </div>
+              {!allOrders || allOrders.length === 0 ? (
+                <div className="text-center py-16 text-gray-400">
+                  <Package className="w-16 h-16 mx-auto mb-3 opacity-20" />
+                  <p>Aucune commande</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                      <tr>
+                        <th className="text-left p-3">N° Commande</th>
+                        <th className="text-left p-3 hidden sm:table-cell">Client</th>
+                        <th className="text-left p-3">Montant</th>
+                        <th className="text-left p-3">Statut</th>
+                        <th className="text-left p-3 hidden md:table-cell">Date</th>
+                        <th className="text-left p-3 hidden lg:table-cell">Paiement</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {allOrders.map((order: any) => {
+                        const statusColors: Record<string,string> = {
+                          pending:"bg-blue-100 text-blue-700",
+                          confirmed:"bg-green-100 text-green-700",
+                          in_transit:"bg-yellow-100 text-yellow-700",
+                          delivered:"bg-emerald-100 text-emerald-700",
+                          cancelled:"bg-red-100 text-red-700",
+                        };
+                        const statusLabels: Record<string,string> = {
+                          pending:"En attente", confirmed:"Confirmée",
+                          in_transit:"En livraison", delivered:"Livrée", cancelled:"Annulée",
+                        };
+                        return (
+                          <tr key={order.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="p-3">
+                              <p className="font-mono text-sm font-bold text-[#005f8a]">{order.orderNumber}</p>
+                            </td>
+                            <td className="p-3 hidden sm:table-cell">
+                              <p className="font-medium text-sm text-gray-900">{order.customerName}</p>
+                              <p className="text-xs text-gray-500">{order.customerPhone}</p>
+                            </td>
+                            <td className="p-3 font-bold text-sm text-[#005f8a]">
+                              {Number(order.totalAmount).toLocaleString()} F
+                            </td>
+                            <td className="p-3">
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[order.status]||"bg-gray-100 text-gray-600"}`}>
+                                {statusLabels[order.status]||order.status}
+                              </span>
+                            </td>
+                            <td className="p-3 hidden md:table-cell text-xs text-gray-400">
+                              {new Date(order.createdAt).toLocaleDateString("fr-FR")}
+                            </td>
+                            <td className="p-3 hidden lg:table-cell">
+                              <span className="text-xs text-gray-500">{order.paymentMethod}</span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
