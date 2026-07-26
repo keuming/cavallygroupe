@@ -46,7 +46,7 @@ export type UserType = "client" | "vendor";
 
 export const deliveryAddresses = pgTable("deliveryAddresses", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  userId: integer("userId").notNull(),
+  userId: integer("userId"),
   label: varchar("label", { length: 50 }),
   fullName: varchar("fullName", { length: 255 }).notNull(),
   phone: varchar("phone", { length: 20 }).notNull(),
@@ -149,7 +149,7 @@ export type InsertProduct = typeof products.$inferInsert;
 
 export const carts = pgTable("carts", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  userId: integer("userId").notNull(),
+  userId: integer("userId"),
   status: cartStatusEnum("status").default("active").notNull(),
   subtotal: numeric("subtotal", { precision: 10, scale: 2 }).default("0"),
   shippingCost: numeric("shippingCost", { precision: 10, scale: 2 }).default("0"),
@@ -168,7 +168,7 @@ export type InsertCart = typeof carts.$inferInsert;
 export const cartItems = pgTable("cartItems", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   cartId: integer("cartId").notNull(),
-  userId: integer("userId").notNull(),
+  userId: integer("userId"),
   productId: integer("productId").notNull(),
   quantity: integer("quantity").notNull().default(1),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -223,6 +223,13 @@ export const paymentTransactions = pgTable("paymentTransactions", {
   status: paymentStatusEnum("status").default("pending").notNull(),
   transactionId: varchar("transactionId", { length: 255 }),
   errorMessage: text("errorMessage"),
+  customerName: varchar("customerName", { length: 255 }),
+  customerEmail: varchar("customerEmail", { length: 255 }),
+  customerPhone: varchar("customerPhone", { length: 50 }),
+  notes: text("notes"),
+  fileData: text("fileData"),
+  totalAmount: varchar("totalAmount", { length: 50 }),
+  quotedItems: text("quotedItems"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
 });
@@ -254,13 +261,20 @@ export type InsertOrderTracking = typeof orderTracking.$inferInsert;
 
 export const supplyLists = pgTable("supplyLists", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  userId: integer("userId").notNull(),
+  userId: integer("userId"),
   fileName: varchar("fileName", { length: 255 }).notNull(),
   fileUrl: text("fileUrl").notNull(),
   fileType: supplyFileTypeEnum("fileType").notNull(),
   extractedText: text("extractedText"),
   status: supplyStatusEnum("status").default("uploaded").notNull(),
   errorMessage: text("errorMessage"),
+  customerName: varchar("customerName", { length: 255 }),
+  customerEmail: varchar("customerEmail", { length: 255 }),
+  customerPhone: varchar("customerPhone", { length: 50 }),
+  notes: text("notes"),
+  fileData: text("fileData"),
+  totalAmount: varchar("totalAmount", { length: 50 }),
+  quotedItems: text("quotedItems"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
 });
@@ -284,7 +298,7 @@ export type InsertSupplyListItem = typeof supplyListItems.$inferInsert;
 
 export const invoices = pgTable("invoices", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  userId: integer("userId").notNull(),
+  userId: integer("userId"),
   supplyListId: integer("supplyListId").notNull(),
   invoiceNumber: varchar("invoiceNumber", { length: 50 }).notNull().unique(),
   status: invoiceStatusEnum("status").default("draft").notNull(),
@@ -316,7 +330,7 @@ export type InsertInvoiceItem = typeof invoiceItems.$inferInsert;
 export const reviews = pgTable("reviews", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   productId: integer("productId").notNull(),
-  userId: integer("userId").notNull(),
+  userId: integer("userId"),
   rating: integer("rating").notNull(),
   title: varchar("title", { length: 255 }).notNull(),
   content: text("content").notNull(),
@@ -432,7 +446,7 @@ export type InsertMessage = typeof messages.$inferInsert;
 
 export const schoolLists = pgTable("schoolLists", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  userId: integer("userId").notNull(),
+  userId: integer("userId"),
   schoolName: varchar("schoolName", { length: 255 }).notNull(),
   className: varchar("className", { length: 100 }).notNull(),
   studentName: varchar("studentName", { length: 255 }).notNull(),
@@ -446,6 +460,13 @@ export const schoolLists = pgTable("schoolLists", {
   convertedToOrder: boolean("convertedToOrder").default(false),
   orderId: integer("orderId"),
   errorMessage: text("errorMessage"),
+  customerName: varchar("customerName", { length: 255 }),
+  customerEmail: varchar("customerEmail", { length: 255 }),
+  customerPhone: varchar("customerPhone", { length: 50 }),
+  notes: text("notes"),
+  fileData: text("fileData"),
+  totalAmount: varchar("totalAmount", { length: 50 }),
+  quotedItems: text("quotedItems"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull().$onUpdate(() => new Date()),
 });

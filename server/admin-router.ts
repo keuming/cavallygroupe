@@ -167,6 +167,33 @@ export const adminRouter = router({
       }
     }),
 
+  // Get Supply Lists
+  getSupplyLists: adminProcedure.query(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+    const { supplyLists } = await import('../drizzle/schema');
+    const { users } = await import('../drizzle/schema');
+    const { desc: descOp } = await import('drizzle-orm');
+    const result = await db.select().from(supplyLists).orderBy(descOp(supplyLists.createdAt)).limit(100);
+    return result;
+  }),
+
+  updateSupplyListStatus: adminProcedure
+    .input(z.object({ id: z.number(), status: z.string(), totalAmount: z.string().optional(), quotedItems: z.string().optional() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const { supplyLists } = await import('../drizzle/schema');
+      const { eq: eqOp } = await import('drizzle-orm');
+      await db.update(supplyLists).set({
+        status: input.status as any,
+        totalAmount: input.totalAmount,
+        quotedItems: input.quotedItems,
+        updatedAt: new Date(),
+      }).where(eqOp(supplyLists.id, input.id));
+      return { success: true };
+    }),
+
   // Update Category
   updateCategory: adminProcedure
     .input(z.object({

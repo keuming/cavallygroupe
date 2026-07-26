@@ -1192,3 +1192,31 @@ export async function updateUserProfile(userId: number, data: { name?: string; p
   const updated = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   return updated[0] || null;
 }
+
+export async function createSupplyList(data: {
+  userId?: number;
+  fileName: string;
+  fileUrl: string;
+  fileType: string;
+  fileData?: string;
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  notes?: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(supplyLists).values({
+    userId: data.userId || null,
+    fileName: data.fileName,
+    fileUrl: data.fileUrl || 'pending',
+    fileType: data.fileType as any,
+    fileData: data.fileData,
+    customerName: data.customerName,
+    customerEmail: data.customerEmail,
+    customerPhone: data.customerPhone,
+    notes: data.notes,
+    status: 'uploaded' as any,
+  }).returning();
+  return result[0];
+}

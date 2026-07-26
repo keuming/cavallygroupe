@@ -78,6 +78,7 @@ import {
   deleteProductGalleryImage,
   updateGalleryImageOrder,
   getAllSupplyLists,
+  createSupplyList,
   getSupplyListById,
   getSupplyListsByUserId,
   updateSupplyListStatus,
@@ -692,6 +693,79 @@ export const appRouter = router({
 
   // SUPPLY LISTS (Demandes de Devis)
   supplyLists: router({
+    create: publicProcedure
+      .input(z.object({
+        fileName: z.string(),
+        fileType: z.string(),
+        fileData: z.string().optional(),
+        customerName: z.string(),
+        customerEmail: z.string().email().optional(),
+        customerPhone: z.string(),
+        notes: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const userId = ctx.user?.id;
+        const result = await createSupplyList({
+          userId,
+          fileName: input.fileName,
+          fileUrl: 'cloudinary-pending',
+          fileType: input.fileType,
+          fileData: input.fileData,
+          customerName: input.customerName,
+          customerEmail: input.customerEmail,
+          customerPhone: input.customerPhone,
+          notes: input.notes,
+        });
+
+        // Envoyer email à l'équipe
+        try {
+          const { sendOrderConfirmationEmail } = await import('./email-service');
+          const nodemailer = await import('nodemailer');
+          const transporter = nodemailer.default.createTransport({
+            host: process.env.SMTP_HOST || 'smtp-relay.brevo.com',
+            port: Number(process.env.SMTP_PORT || 587),
+            secure: false,
+            auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+          });
+          await transporter.sendMail({
+            from: process.env.SMTP_FROM || 'Cavally Livres <service.client@cavally-livres.com>',
+            to: process.env.OWNER_EMAIL || 'keumingo@gmail.com',
+            subject: `[Cavally] Nouvelle liste de commande - ${input.customerName}`,
+            html: `
+              <h2>Nouvelle demande de liste de commande</h2>
+              <p><strong>Client:</strong> ${input.customerName}</p>
+              <p><strong>Téléphone:</strong> ${input.customerPhone}</p>
+              <p><strong>Email:</strong> ${input.customerEmail || 'Non fourni'}</p>
+              <p><strong>Fichier:</strong> ${input.fileName}</p>
+              <p><strong>Notes:</strong> ${input.notes || 'Aucune'}</p>
+              <p><strong>Date:</strong> ${new Date().toLocaleString('fr-FR')}</p>
+              <p>Veuillez traiter cette demande sous 24h.</p>
+            `,
+          });
+        } catch(e) { console.error('[SupplyList] Email erreur:', e); }
+
+        // Envoyer SMS confirmation au client si téléphone fourni
+        if (input.customerPhone) {
+          try {
+            const smsModule = await import('./sms-service');
+            const SMS = smsModule.default;
+            const svc = new SMS({
+              provider: (process.env.SMS_PROVIDER as any) || 'mock',
+              apiKey: process.env.SMS_API_KEY,
+              senderName: 'CavallyLivres',
+            });
+            await svc.sendSMS({
+              to: input.customerPhone,
+              message: `Bonjour ${input.customerName}, votre liste de commande a bien été reçue par Cavally Livres. Nous vous contacterons dans les 24h avec votre devis. Merci!`,
+              orderId: result?.id || 0,
+              status: 'pending',
+            });
+          } catch(e) { console.error('[SupplyList] SMS erreur:', e); }
+        }
+
+        return { success: true, id: result?.id, message: 'Demande reçue! Nous vous contacterons dans les 24h.' };
+      }),
+
     getAll: protectedProcedure.query(async ({ ctx }) => {
       if (ctx.user?.role !== 'admin') {
         throw new Error('Only admins can view all supply lists');
