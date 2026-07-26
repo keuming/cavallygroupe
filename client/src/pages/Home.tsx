@@ -1,58 +1,39 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { getLocalCartCount } from "@/hooks/useLocalCart";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { getLocalCartCount, addToLocalCart } from "@/hooks/useLocalCart";
 import { trpc } from "@/lib/trpc";
-import OptimizedImage from "@/components/OptimizedImage";
 import { useLocation } from "wouter";
-import { BookOpen, ShoppingCart, Menu, X, Upload, Search, Truck, Lock, Award, Settings, ChevronDown, Moon, Sun } from "lucide-react";
+import { BookOpen, ShoppingCart, Upload, Search, X, Moon, Sun, Menu, Settings, LogOut, User, ChevronRight } from "lucide-react";
 import { useDarkMode } from "@/hooks/useDarkMode";
-import { useNotifications } from "@/hooks/useNotifications";
 import { getLoginUrl } from "@/const";
 import { PWAInstallBanner } from "@/components/PWAInstallBanner";
 import { ChatbotWidget, type Message } from "@/components/ChatbotWidget";
-import { NotificationDropdown } from "@/components/NotificationDropdown";
+import { AddToCartModal } from "@/components/AddToCartModal";
 import { ModernEducationMenu } from "@/components/ModernEducationMenu";
-
 
 export default function Home() {
   const { user, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
   const { isDarkMode, toggleDarkMode } = useDarkMode();
-  const { notifications, unreadCount, addNotification } = useNotifications();
-  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [expandedCategory, setExpandedCategory] = useState<number | null>(null);
-  const [navbarOpen, setNavbarOpen] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [aiMessages, setAiMessages] = useState<Message[]>([
-    { role: "system", content: "Vous êtes un assistant IA pour Cavaly Livres, une plateforme e-commerce de manuels et oeuvres littéraires en Côte d'Ivoire. Aidez les clients avec leurs questions sur les produits, les commandes et les services." },
-    { role: "assistant", content: "Bonjour! Je suis l'assistant IA de Cavaly Livres. Comment puis-je vous aider aujourd'hui?" }
-  ]);
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showCartModal, setShowCartModal] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
+  const [lastAdded, setLastAdded] = useState<{title: string; price: string} | null>(null);
+  const [aiMessages, setAiMessages] = useState<Message[]>([]);
 
-  const { data: categories, isLoading: categoriesLoading } = trpc.categories.list.useQuery();
-  const { data: allProducts } = trpc.products.list.useQuery({});
-  
-
-
-  // Track scroll position for navbar shadow effect
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  const { data: categories } = trpc.categories.list.useQuery();
+  const { data: cartItems } = trpc.cart.list.useQuery(undefined, { enabled: isAuthenticated });
+  const { data: allProducts } = trpc.products.list.useQuery({ limit: 50 });
   const { data: searchResults } = trpc.products.search.useQuery(
     { query: searchQuery },
     { enabled: searchQuery.length > 0 }
   );
-  const { data: cartItems } = trpc.cart.list.useQuery();
   const addToCartMutation = trpc.cart.add.useMutation();
+  const aiChatMutation = trpc.aiChat.sendMessage.useMutation();
+  const logoutMutation = trpc.auth.logout.useMutation();
+
   const [localCartCount, setLocalCartCount] = useState(0);
   useEffect(() => {
     if (!isAuthenticated) {
@@ -62,622 +43,312 @@ export default function Home() {
       return () => window.removeEventListener("local-cart-updated", handler);
     }
   }, [isAuthenticated]);
-  const cartCount = isAuthenticated ? (cartItems?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0) : localCartCount;
-  const aiChatMutation = trpc.aiChat.sendMessage.useMutation();
+
+  const dbCartCount = cartItems?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0;
+  const totalCartCount = isAuthenticated ? dbCartCount : localCartCount;
 
   const products = searchQuery ? searchResults : allProducts;
   const filtered = selectedCategory
     ? products?.filter((p: any) => p.categoryId === selectedCategory)
     : products;
 
-  const utils = trpc.useUtils();
-
-  const handleAddToCart = (productId: number) => {
-    if (!isAuthenticated) {
-      // Stocker le produit dans le panier local avant la connexion
-      const localCart = JSON.parse(localStorage.getItem('localCart') || '[]');
-      const existingItem = localCart.find((item: any) => item.productId === productId);
-      if (existingItem) {
-        existingItem.quantity += 1;
-      } else {
-        localCart.push({ productId, quantity: 1 });
-      }
-      localStorage.setItem('localCart', JSON.stringify(localCart));
-      alert("Produit ajoute au panier! Connectez-vous pour valider votre commande.");
-      return;
+  const handleAddToCart = (product: any) => {
+    if (isAuthenticated) {
+      addToCartMutation.mutate({ productId: product.id, quantity: 1 });
+    } else {
+      addToLocalCart({ id: product.id, title: product.title, price: product.price, coverImageUrl: product.coverImageUrl ?? undefined, stock: product.stock }, 1);
     }
-    addToCartMutation.mutate(
-      { productId, quantity: 1 },
-      {
-        onSuccess: () => {
-          // Invalider le cache du panier pour rafraichir le badge
-          utils.cart.list.invalidate();
-          alert("Produit ajoute au panier!");
-        },
-      }
-    );
+    setLastAdded({ title: product.title, price: product.price });
+    setCartCount(prev => prev + 1);
+    setShowCartModal(true);
+  };
+
+  const handleLogout = () => {
+    logoutMutation.mutate(undefined, {
+      onSuccess: () => {
+        localStorage.removeItem("cavally_token");
+        localStorage.removeItem("cavally_cart");
+        if ("caches" in window) caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+        setTimeout(() => { window.location.href = "/"; }, 100);
+      },
+    });
+  };
+
+  const catColors: Record<number, string> = {
+    1: "#005f8a", 2: "#7c3aed", 3: "#059669", 4: "#d97706",
+    5: "#dc2626", 6: "#0891b2", 7: "#16a34a", 8: "#9333ea",
   };
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${
-      isDarkMode 
-        ? 'bg-gray-900 text-gray-100' 
-        : 'bg-gray-50 text-gray-900'
-    }`}>
-      {/* Navigation superieure */}
-      <nav className={`bg-yellow-50 border-b-4 border-yellow-400 sticky top-0 z-50 transition-shadow duration-300 ${
-        isScrolled ? 'shadow-lg' : 'shadow-md'
-      } ${
-        isDarkMode ? 'bg-gray-800 border-gray-700' : ''
-      }`}>
-        <div className="container mx-auto px-2 sm:px-4 py-3 sm:py-4">
-          {/* Ligne 1: Logo + Menu deroulant + Actions */}
-          <div className="flex items-center justify-between gap-2 sm:gap-4">
+    <div className={`min-h-screen ${isDarkMode ? "bg-gray-900 text-white" : "bg-gray-50"}`}>
+
+      {/* NAVBAR */}
+      <nav className={`sticky top-0 z-50 shadow-sm border-b ${isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-16 gap-3">
             {/* Logo */}
-            <div
-              className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
-              onClick={() => navigate("/")}
-            >
-              <div className="w-8 sm:w-10 h-8 sm:h-10 bg-gradient-to-br from-[#FFC107] to-[#FFA000] rounded-lg flex items-center justify-center shadow-md">
-                <BookOpen className="w-5 sm:w-6 h-5 sm:h-6 text-white" />
+            <div className="flex items-center gap-2 cursor-pointer flex-shrink-0" onClick={() => { setSelectedCategory(null); setSearchQuery(""); }}>
+              <div className="w-9 h-9 bg-[#005f8a] rounded-xl flex items-center justify-center">
+                <BookOpen className="w-5 h-5 text-white" />
               </div>
               <div className="hidden sm:block">
-                <h1 className="text-lg sm:text-2xl font-bold text-yellow-600">Cavally Livres</h1>
-                <p className="text-xs text-yellow-700 hidden md:block">Manuels & Oeuvres Litteraires</p>
+                <p className="font-bold text-[#005f8a] text-sm leading-tight">Cavally Livres</p>
+                <p className="text-xs text-gray-500">Manuels & Oeuvres</p>
               </div>
             </div>
 
-            {/* Menu deroulant categories sur mobile */}
-            <div className="lg:hidden flex-1 max-w-xs">
-              <button
-                onClick={() => setNavbarOpen(!navbarOpen)}
-                className={`w-full px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                  isDarkMode
-                    ? 'bg-gray-700 text-gray-100 hover:bg-gray-600'
-                    : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                }`}
-              >
-                {navbarOpen ? '✕ Categories' : '≡ Categories'}
-              </button>
+            {/* Barre de recherche */}
+            <div className="flex-1 max-w-xl relative">
+              <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+              <input
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Rechercher un livre, auteur..."
+                className={`w-full pl-9 pr-4 py-2 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-[#005f8a] ${isDarkMode ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400" : "bg-gray-100 border-transparent"}`}
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery("")} className="absolute right-3 top-2.5 text-gray-400">
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
 
-            {/* Boutons actions droite */}
-            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={toggleDarkMode}
-                className={`text-gray-700 hover:text-yellow-600 hover:bg-yellow-50 transition-colors ${
-                  isDarkMode ? 'text-gray-300 hover:text-yellow-400 hover:bg-gray-700' : ''
-                }`}
-                title={isDarkMode ? "Mode clair" : "Mode sombre"}
-              >
-                {isDarkMode ? <Sun className="w-4 sm:w-5 h-4 sm:h-5" /> : <Moon className="w-4 sm:w-5 h-4 sm:h-5" />}
-              </Button>
-              <div className="relative">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowNotifications(!showNotifications)}
-                  className={`text-gray-700 hover:text-yellow-600 hover:bg-yellow-50 relative transition-colors ${
-                    isDarkMode ? 'text-gray-300 hover:text-yellow-400 hover:bg-gray-700' : ''
-                  }`}
-                  title="Notifications"
-                >
-                  <ShoppingCart className="w-4 sm:w-5 h-4 sm:h-5" />
-                  {cartCount > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center animate-pulse">
-                      {cartCount}
-                    </span>
-                  )}
-                </Button>
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-bounce">
-                    {unreadCount > 9 ? '9+' : unreadCount}
+            {/* Actions droite */}
+            <div className="flex items-center gap-2">
+              {/* Panier */}
+              <button onClick={() => navigate("/cart")} className="relative p-2 rounded-xl hover:bg-gray-100 transition-colors">
+                <ShoppingCart className="w-5 h-5 text-gray-600" />
+                {totalCartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#005f8a] text-white text-xs rounded-full flex items-center justify-center font-bold">
+                    {totalCartCount}
                   </span>
                 )}
-                {showNotifications && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
-                    <div className="absolute right-0 top-full mt-2 z-50">
-                      <NotificationDropdown />
-                    </div>
-                  </>
-                )}
-              </div>
-              {isAuthenticated && (
-                <Button
-                  size="sm"
-                  onClick={() => navigate("/customer-dashboard")}
-                  className="bg-gradient-to-r from-[#005f8a] to-[#0080b8] hover:shadow-lg text-white shadow-md transition-all hidden sm:flex items-center gap-1 font-semibold"
-                  title="Espace Client - Suivi des commandes"
-                >
-                  <Lock className="w-3 sm:w-4 h-3 sm:h-4" />
-                  <span className="hidden md:inline">ESPACE CLIENT</span>
-                </Button>
-              )}
-              {isAuthenticated ? (
-                <Button
-                  size="sm"
-                  onClick={() => navigate("/account")}
-                  className="bg-yellow-500 hover:bg-yellow-600 text-white shadow-md hover:shadow-lg transition-all text-xs sm:text-sm"
-                >
-                  {user?.name ? user.name.split(' ')[0] : "Compte"}
-                </Button>
-              ) : (
-                <div className="relative flex gap-2">
-                  <Button
-                    size="sm"
-                    onClick={() => navigate("/login")}
-                    className="bg-[#005f8a] hover:bg-[#004a6b] text-white shadow-md hover:shadow-lg transition-all text-xs sm:text-sm"
-                  >
-                    Connexion
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => navigate("/register")}
-                    className="bg-white border border-[#005f8a] text-[#005f8a] hover:bg-blue-50 shadow-md hover:shadow-lg transition-all text-xs sm:text-sm font-semibold hidden sm:flex"
-                  >
-                    Créer un compte
-                  </Button>
-                </div>
-              )}
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className={`lg:hidden text-yellow-600 hover:bg-yellow-50 p-2 rounded transition-colors ${
-                  isDarkMode ? 'text-yellow-400 hover:bg-gray-700' : ''
-                }`}
-              >
-                {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
+
+              {/* Dark mode */}
+              <button onClick={toggleDarkMode} className="p-2 rounded-xl hover:bg-gray-100 transition-colors hidden sm:block">
+                {isDarkMode ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-gray-500" />}
+              </button>
+
+              {/* User */}
+              {isAuthenticated ? (
+                <div className="relative group">
+                  <button className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-gray-100 transition-colors">
+                    <div className="w-7 h-7 bg-[#005f8a] rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">{user?.name?.[0]?.toUpperCase()}</span>
+                    </div>
+                    <span className="text-sm font-medium hidden sm:block">{user?.name?.split(" ")[0]}</span>
+                  </button>
+                  <div className="absolute right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-gray-100 py-2 w-48 hidden group-hover:block z-50">
+                    {user?.role === "admin" && (
+                      <button onClick={() => window.location.href = "https://dashboard.cavallygroupe.com"} className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                        <Settings className="w-4 h-4" /> Dashboard Admin
+                      </button>
+                    )}
+                    <button onClick={() => navigate("/customer-dashboard")} className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                      <User className="w-4 h-4" /> Mon espace
+                    </button>
+                    <button onClick={handleLogout} className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-500 hover:bg-red-50">
+                      <LogOut className="w-4 h-4" /> Déconnexion
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={() => navigate("/login")} className="px-4 py-2 bg-[#005f8a] text-white rounded-xl text-sm font-medium hover:bg-[#004a6b] transition-colors hidden sm:block">
+                  Connexion
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Ligne 2: Menu categories desktop */}
-          <div className="mt-3 hidden lg:flex items-center justify-start gap-3 pb-2 px-4">
-            {/* Live Shopping */}
-            <button
-              onClick={() => navigate('/live-shopping')}
-              className={`font-bold transition-all duration-200 whitespace-nowrap text-sm px-3 py-2 rounded shadow-md hover:shadow-lg flex items-center gap-2 flex-shrink-0 ${isDarkMode ? 'text-white bg-red-600 hover:bg-red-700' : 'text-white bg-red-500 hover:bg-red-600'}`}
-            >
-              <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-              <span>Live Shopping</span>
-            </button>
-            
-            {/* Menu Manuels Scolaires */}
+          {/* Barre catégories */}
+          <div className="flex items-center gap-2 pb-3 overflow-x-auto scrollbar-hide">
             <ModernEducationMenu isDarkMode={isDarkMode} />
-            
-            {/* Catégories principales */}
-            {categories?.filter(cat => cat.name !== 'Manuels Scolaires').map((cat) => (
+            <button
+              onClick={() => setSelectedCategory(null)}
+              className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${!selectedCategory ? "bg-[#005f8a] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+            >
+              Tous
+            </button>
+            {categories?.filter((c: any) => c.name !== "Manuels Scolaires").map((cat: any) => (
               <button
                 key={cat.id}
-                onClick={() => navigate(`/category/${cat.id}`)}
-                className={`font-medium transition-all duration-200 whitespace-nowrap text-base px-4 py-2 rounded flex-shrink-0 ${isDarkMode ? 'text-gray-300 hover:text-yellow-400 hover:bg-gray-700' : 'text-gray-700 hover:text-yellow-600 hover:bg-yellow-100'}`}
+                onClick={() => { setSelectedCategory(selectedCategory === cat.id ? null : cat.id); navigate(`/category/${cat.id}`); }}
+                className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedCategory === cat.id ? "text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+                style={selectedCategory === cat.id ? { backgroundColor: catColors[cat.id] || "#005f8a" } : {}}
               >
+                {cat.icon && <span className="mr-1">{cat.icon}</span>}
                 {cat.name}
               </button>
             ))}
-            
-            {/* Commande Rapide */}
-            <button
-              onClick={() => navigate('/quick-order')}
-              className={`font-bold transition-all duration-200 whitespace-nowrap text-sm px-4 py-2 rounded-full flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105 bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 flex-shrink-0`}
-            >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1h7.586a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM5 16a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-              <span>Commande Rapide</span>
-            </button>
           </div>
-
-          {/* Menu deroulant mobile */}
-          {navbarOpen && (
-            <div className={`lg:hidden mt-3 pt-3 border-t ${
-              isDarkMode ? 'border-gray-700' : 'border-yellow-200'
-            } grid grid-cols-2 sm:grid-cols-3 gap-2`}>
-              <button
-                onClick={() => {
-                  navigate('/live-shopping');
-                  setNavbarOpen(false);
-                }}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1 ${
-                  isDarkMode
-                    ? 'bg-red-900 text-red-100 hover:bg-red-800'
-                    : 'bg-red-100 text-red-700 hover:bg-red-200'
-                }`}
-              >
-                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                Live
-              </button>
-              {categories?.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => {
-                    navigate(`/category/${cat.id}`);
-                    setNavbarOpen(false);
-                  }}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                    isDarkMode
-                      ? 'bg-gray-700 text-gray-100 hover:bg-gray-600'
-                      : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                  }`}
-                >
-                  {cat.name}
-                </button>
-              ))}
-              <button
-                onClick={() => {
-                  navigate('/quick-order');
-                  setNavbarOpen(false);
-                }}
-                className={`col-span-2 sm:col-span-3 px-3 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-1 bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700`}
-              >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1h7.586a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM5 16a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-                Commande Rapide
-              </button>
-            </div>
-          )}
         </div>
       </nav>
 
-      {/* Overlay pour fermer le menu sur mobile */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      <div className="container mx-auto px-4 py-6 max-w-7xl">
 
-      <div className="flex w-full">
-        {/* Sidebar lateral - caché sur mobile */}
-        <aside
-          className={`fixed lg:relative top-[calc(58px+4px)] lg:top-0 left-0 h-[calc(100vh-58px-4px)] lg:h-auto ${
-            sidebarOpen ? "w-64 z-40" : "w-0 -translate-x-full lg:translate-x-0"
-          } bg-gray-50 border-r border-gray-200 transition-all duration-300 overflow-y-auto shadow-lg lg:shadow-sm ${
-            isDarkMode ? 'bg-gray-800 border-gray-700' : ''
-          }`}
-        >
-          <div className="p-6">
-            <h2 className="text-xl font-bold text-yellow-700 mb-6 flex items-center gap-2">
-              <BookOpen className="w-5 h-5" />
-              Catégories
-            </h2>
-            <div className="space-y-2">
-              <Button
-                variant={selectedCategory === null ? "default" : "outline"}
-                onClick={() => setSelectedCategory(null)}
-                className={`w-full justify-start transition-all ${
-                  selectedCategory === null
-                    ? "bg-[#005f8a] hover:bg-[#004a6a] text-white"
-                    : "border-gray-200 hover:bg-gray-100"
-                }`}
-              >
-                Tous les produits
-              </Button>
-              {categories?.map((cat) => (
-                <Button
-                  key={cat.id}
-                  variant={selectedCategory === cat.id ? "default" : "outline"}
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className={`w-full justify-start transition-all ${
-                    selectedCategory === cat.id
-                      ? "bg-[#005f8a] hover:bg-[#004a6a] text-white"
-                      : "border-gray-200 hover:bg-gray-100"
-                  }`}
-                >
-                  {cat.name}
-                </Button>
-              ))}
-            </div>
-
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <h3 className="font-bold text-yellow-700 mb-3 flex items-center gap-2">
-                <Search className="w-4 h-4" />
-                Recherche
-              </h3>
-              <Input
-                placeholder="Titre, auteur..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full border-gray-200 focus:border-[#005f8a] focus:ring-blue-600"
-              />
-            </div>
-
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <Button
-                onClick={() => navigate("/supply-list-upload")}
-                className="w-full bg-gradient-to-r from-[#005f8a] to-[#0080b8] hover:from-[#004a6b] hover:to-[#006a9a] text-white shadow-md hover:shadow-lg transition-all"
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                ENVOYER MA LISTE
-              </Button>
-              <p className="text-xs text-gray-500 mt-3 text-center leading-relaxed">
-                📋 Uploadez votre liste (PDF, Word, Photo) — Devis sous 24h
-              </p>
-            </div>
-          </div>
-        </aside>
-
-        {/* Contenu principal */}
-        <main className="flex-1 w-full p-4 sm:p-6 md:p-8 lg:p-8 min-h-screen">
-          {/* Hero Section */}
-          {!selectedCategory && !searchQuery && (
-            <div className="mb-8 sm:mb-12 bg-white rounded-xl p-4 sm:p-8 shadow-md border border-gray-200 relative overflow-hidden">
-              <div className="relative z-10">
-                <h2 className="text-2xl sm:text-4xl font-bold mb-3 text-gray-900">Bienvenue chez Cavally Livres</h2>
-                <p className="text-gray-600 mb-6 text-sm sm:text-lg">
-                  Decouvrez notre collection complete de manuels scolaires, universitaires et oeuvres litteraires
+        {/* HERO - Bouton ENVOYER MA LISTE en vedette */}
+        {!searchQuery && !selectedCategory && (
+          <div className="mb-8">
+            {/* Banner principal */}
+            <div className="bg-gradient-to-r from-[#005f8a] to-[#0080b8] rounded-2xl p-6 sm:p-10 text-white mb-4 relative overflow-hidden">
+              <div className="absolute right-0 top-0 opacity-10 text-[200px] leading-none">📚</div>
+              <div className="relative z-10 max-w-2xl">
+                <p className="text-blue-100 text-sm font-medium mb-2 uppercase tracking-wide">Cavally Livres — Abidjan</p>
+                <h1 className="text-2xl sm:text-4xl font-bold mb-3 leading-tight">
+                  Vos manuels scolaires<br />livrés à domicile
+                </h1>
+                <p className="text-blue-100 mb-6 text-sm sm:text-base">
+                  Uploadez votre liste de livres et recevez un devis personnalisé sous 24h
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-                  <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-lg border border-gray-200 hover:border-[#005f8a] transition-all">
-                    <Truck className="w-6 h-6 flex-shrink-0 text-yellow-600" />
-                    <span className="text-sm text-gray-700">Livraison rapide en Cote d'Ivoire</span>
-                  </div>
-                  <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-lg border border-gray-200 hover:border-[#005f8a] transition-all">
-                    <Lock className="w-6 h-6 flex-shrink-0 text-yellow-600" />
-                    <span className="text-sm text-gray-700">Paiement securise</span>
-                  </div>
-                  <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-lg border border-gray-200 hover:border-[#005f8a] transition-all">
-                    <Award className="w-6 h-6 flex-shrink-0 text-yellow-600" />
-                    <span className="text-sm text-gray-700">Produits authentiques</span>
-                  </div>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  {/* BOUTON PRINCIPAL */}
+                  <button
+                    onClick={() => navigate("/supply-list-upload")}
+                    className="flex items-center justify-center gap-3 px-8 py-4 bg-white text-[#005f8a] rounded-xl font-bold text-lg hover:bg-blue-50 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                  >
+                    <Upload className="w-6 h-6" />
+                    ENVOYER MA LISTE
+                  </button>
+                  <button
+                    onClick={() => navigate("/cart")}
+                    className="flex items-center justify-center gap-2 px-6 py-4 bg-white/20 text-white rounded-xl font-medium hover:bg-white/30 transition-colors border border-white/30"
+                  >
+                    <ShoppingCart className="w-5 h-5" />
+                    Commander à l'unité
+                  </button>
                 </div>
+                <p className="text-blue-200 text-xs mt-3">
+                  ✓ PDF, Word ou Photo  ✓ Devis sous 24h  ✓ Livraison gratuite Abidjan
+                </p>
               </div>
             </div>
-          )}
 
-          {/* Titre et compteur */}
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">
-              {selectedCategory
-                ? categories?.find((c) => c.id === selectedCategory)?.name
-                : searchQuery
-                ? "Résultats de recherche"
-                : "Tous nos produits"}
-            </h2>
-            <div className="flex items-center gap-2">
-              <div className="w-1 h-6 bg-[#005f8a] rounded"></div>
-              <p className="text-gray-600">
-                {filtered?.length || 0} produit{filtered?.length !== 1 ? "s" : ""} disponible{filtered?.length !== 1 ? "s" : ""}
-              </p>
+            {/* Cards info rapide */}
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { icon: "📋", title: "Envoyez votre liste", desc: "PDF, Word ou Photo" },
+                { icon: "💰", title: "Recevez votre devis", desc: "Sous 24h par SMS/Email" },
+                { icon: "🚚", title: "Livraison rapide", desc: "Gratuite à Abidjan" },
+              ].map(card => (
+                <div key={card.title} className={`rounded-xl p-4 text-center ${isDarkMode ? "bg-gray-800" : "bg-white"} shadow-sm`}>
+                  <div className="text-2xl mb-2">{card.icon}</div>
+                  <p className="font-semibold text-sm text-gray-900 dark:text-white">{card.title}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{card.desc}</p>
+                </div>
+              ))}
             </div>
           </div>
+        )}
 
-          {/* Grille de produits - responsive */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
-            {filtered?.map((product: any) => (
-              <Card
+        {/* Titre section produits */}
+        <div className="flex items-center justify-between mb-4">
+          <h2 className={`text-xl font-bold ${isDarkMode ? "text-white" : "text-gray-900"}`}>
+            {searchQuery ? `Résultats pour "${searchQuery}"` : selectedCategory ? categories?.find((c: any) => c.id === selectedCategory)?.name : "Notre catalogue"}
+          </h2>
+          {selectedCategory && (
+            <button onClick={() => setSelectedCategory(null)} className="text-sm text-[#005f8a] flex items-center gap-1 hover:underline">
+              Voir tout <X className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+
+        {/* Grille produits */}
+        {(!filtered || filtered.length === 0) ? (
+          <div className="text-center py-20">
+            <BookOpen className="w-16 h-16 text-gray-200 mx-auto mb-3" />
+            <p className="text-gray-500">{searchQuery ? "Aucun résultat trouvé" : "Catalogue en cours de chargement..."}</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {filtered.map((product: any) => (
+              <div
                 key={product.id}
-                className={`hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col hover:-translate-y-1 ${
-                isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'
-              }`}
+                className={`rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group ${isDarkMode ? "bg-gray-800" : "bg-white"}`}
+                onClick={() => navigate(`/product/${product.id}`)}
               >
-                {/* Image de couverture */}
-                <div className={`w-full h-40 sm:h-48 md:h-56 lg:h-64 overflow-hidden relative group transition-colors duration-300 ${
-                  isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
-                }`}>
+                <div className="relative h-48 overflow-hidden bg-gray-100">
                   {product.coverImageUrl ? (
-                    <OptimizedImage
-                      src={product.coverImageUrl}
-                      alt={product.title}
-                      className="w-full h-48 object-cover"
-                      width={300}
-                      height={400}
-                      priority={filtered?.indexOf(product) < 5}
-                    />
+                    <img src={product.coverImageUrl} alt={product.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                   ) : (
-                    <div className={`w-full h-full flex items-center justify-center transition-colors duration-300 ${
-                      isDarkMode 
-                        ? 'bg-gradient-to-br from-gray-700 to-gray-800' 
-                        : 'bg-gradient-to-br from-gray-100 to-gray-200'
-                    }`}>
-                      <BookOpen className="w-12 h-12 text-gray-400 opacity-50" />
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
+                      <BookOpen className="w-12 h-12 text-[#005f8a] opacity-40" />
                     </div>
                   )}
                   {product.stock === 0 && (
-                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                      <span className={`font-bold text-lg ${
-                        isDarkMode ? 'text-gray-200' : 'text-white'
-                      }`}>Rupture</span>
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                      <span className="text-white text-xs font-bold bg-red-500 px-2 py-1 rounded-full">Rupture</span>
                     </div>
                   )}
                 </div>
-
-                <CardContent className={`flex-1 flex flex-col p-2 sm:p-4 transition-colors duration-300 ${
-                  isDarkMode ? 'bg-gray-800' : 'bg-white'
-                }`}>
-                  <h3 className={`font-bold text-xs sm:text-sm line-clamp-2 hover:text-yellow-600 transition-colors ${
-                    isDarkMode ? 'text-gray-100' : 'text-gray-900'
-                  }`}>
-                    {product.title}
-                  </h3>
-                  <p className={`text-xs mt-1 line-clamp-1 hidden sm:block transition-colors duration-300 ${
-                    isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                  }`}>{product.author}</p>
-
-                  <div className="mt-auto pt-2 sm:pt-4">
-                    <div className="flex items-center justify-between mb-2 sm:mb-3">
-                      <span className="text-sm sm:text-lg font-bold text-yellow-600">
-                        {Number(product.price).toLocaleString()} FCFA
-                      </span>
-                    </div>
-
-                    <p className={`text-xs font-medium mb-2 sm:mb-3 transition-colors duration-300 ${
-                      product.stock > 0 
-                        ? isDarkMode ? 'text-green-400' : 'text-green-600'
-                        : isDarkMode ? 'text-red-400' : 'text-red-600'
-                    }`}>
-                      {product.stock > 0 ? `Stock: ${product.stock}` : "Rupture"}
-                    </p>
-
-                    <div className="flex gap-1 sm:gap-2 mb-2 sm:mb-3">
-                      <Button
-                        onClick={() => navigate(`/product/${product.id}`)}
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 text-xs border-blue-200 hover:bg-yellow-50 hover:text-yellow-600 transition-colors p-1 h-8 sm:h-auto"
-                      >
-                        Details
-                      </Button>
-                      <Button
-                        onClick={() => handleAddToCart(product.id)}
-                        disabled={product.stock === 0}
-                        size="sm"
-                        className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white text-xs shadow-md hover:shadow-lg transition-all disabled:opacity-50 p-1 h-8 sm:h-auto"
-                      >
-                        <ShoppingCart className="w-3 h-3" />
-                      </Button>
-                    </div>
-
-
+                <div className="p-3">
+                  <p className={`font-semibold text-sm line-clamp-2 leading-tight ${isDarkMode ? "text-white" : "text-gray-900"}`}>{product.title}</p>
+                  {product.author && <p className="text-xs text-gray-500 mt-0.5 truncate">{product.author}</p>}
+                  <div className="flex items-center justify-between mt-3">
+                    <span className="font-bold text-[#005f8a]">{Number(product.price).toLocaleString()} <span className="text-xs font-normal">FCFA</span></span>
+                    <button
+                      onClick={e => { e.stopPropagation(); handleAddToCart(product); }}
+                      disabled={product.stock === 0}
+                      className="w-8 h-8 bg-[#005f8a] text-white rounded-xl flex items-center justify-center hover:bg-[#004a6b] transition-colors disabled:bg-gray-200 disabled:cursor-not-allowed"
+                    >
+                      <ShoppingCart className="w-4 h-4" />
+                    </button>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             ))}
           </div>
+        )}
 
-          {filtered?.length === 0 && (
-            <div className="text-center py-16">
-              <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 text-lg font-medium">Aucun produit trouvé</p>
-              <p className="text-gray-400 text-sm mt-2">Essayez de modifier votre recherche ou votre sélection de catégorie</p>
-            </div>
-          )}
-        </main>
+        {/* CTA bas de page */}
+        {!searchQuery && !selectedCategory && filtered && filtered.length > 0 && (
+          <div className="mt-12 bg-gradient-to-r from-[#005f8a] to-[#0080b8] rounded-2xl p-8 text-center text-white">
+            <p className="text-2xl font-bold mb-2">Vous avez une longue liste ?</p>
+            <p className="text-blue-100 mb-6">Envoyez-nous votre liste complète et nous préparons tout pour vous</p>
+            <button
+              onClick={() => navigate("/supply-list-upload")}
+              className="inline-flex items-center gap-3 px-8 py-4 bg-white text-[#005f8a] rounded-xl font-bold text-lg hover:bg-blue-50 transition-all shadow-lg"
+            >
+              <Upload className="w-6 h-6" />
+              ENVOYER MA LISTE MAINTENANT
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* PWA Install Banner */}
+      {/* PWA Banner */}
       <PWAInstallBanner />
 
-      {/* Chatbot Widget */}
+      {/* Modal panier */}
+      {lastAdded && (
+        <AddToCartModal
+          isOpen={showCartModal}
+          onClose={() => setShowCartModal(false)}
+          product={{ title: lastAdded.title, price: lastAdded.price }}
+          quantity={1}
+          cartCount={totalCartCount + 1}
+        />
+      )}
+
+      {/* Chatbot */}
       <ChatbotWidget
         messages={aiMessages}
         onSendMessage={(content: string) => {
           const userMessage: Message = { role: "user", content };
           setAiMessages(prev => [...prev, userMessage]);
-          
           aiChatMutation.mutate(
-            {
-              conversationId: "",
-              message: content,
-              context: {
-                userType: user?.role === "admin" ? "admin" : "customer",
-              },
-            },
+            { conversationId: "", message: content, context: { userType: user?.role === "admin" ? "admin" : "customer" } },
             {
               onSuccess: (response) => {
-                const assistantMessage: Message = {
-                  role: "assistant",
-                  content: typeof response.message === 'string' ? response.message : String(response.message),
-                };
-                setAiMessages(prev => [...prev, assistantMessage]);
+                setAiMessages(prev => [...prev, { role: "assistant", content: typeof response.message === "string" ? response.message : String(response.message) }]);
               },
               onError: () => {
-                const errorMessage: Message = {
-                  role: "assistant",
-                  content: "Une erreur s'est produite. Veuillez réessayer.",
-                };
-                setAiMessages(prev => [...prev, errorMessage]);
+                setAiMessages(prev => [...prev, { role: "assistant", content: "Une erreur s'est produite. Veuillez réessayer." }]);
               },
             }
           );
         }}
-        isLoading={aiChatMutation.isPending}
-        placeholder="Posez vos questions..."
-        title="Assistant Cavally"
-        subtitle="Comment puis-je vous aider ?"
-        suggestedPrompts={[
-          "Comment passer une commande rapide ?",
-          "Je veux télécharger ma liste de fournitures",
-          "Comment partager une liste avec d'autres parents ?",
-          "Où trouver mes commandes ?",
-        ]}
       />
-
-      {/* Contact Info Bar */}
-      <div className="bg-white border-t border-gray-200 py-4">
-        <div className="container mx-auto px-4 flex flex-col md:flex-row items-center justify-center gap-8">
-          <div className="flex items-center gap-2">
-            <span className="text-gray-600 font-medium">Service Client:</span>
-            <a href="tel:+2250586000103" className="text-yellow-600 font-bold hover:underline">
-              +225 05 86 000 103
-            </a>
-          </div>
-          <div className="hidden md:block w-px h-6 bg-gray-300"></div>
-          <div className="flex items-center gap-2">
-            <span className="text-gray-600 font-medium">Email:</span>
-            <a href="mailto:service.clients@cavallylivre.com" className="text-yellow-600 font-bold hover:underline">
-              service.clients@cavallylivre.com
-            </a>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white mt-16">
-        <div className="container mx-auto px-4 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-[#005f8a] rounded-lg flex items-center justify-center">
-                  <BookOpen className="w-5 h-5 text-white" />
-                </div>
-                <h3 className="font-bold text-lg">Cavally Livres</h3>
-              </div>
-              <p className="text-gray-400 text-sm">
-                Votre plateforme de vente en ligne de manuels et oeuvres littéraires en Côte d'Ivoire
-              </p>
-            </div>
-            <div>
-              <h3 className="font-bold text-lg mb-4 text-yellow-600">Contact</h3>
-              <p className="text-gray-400 text-sm mb-2">Téléphone: +225 05 86 000 103</p>
-              <p className="text-gray-400 text-sm">Email: service.clients@cavallylivre.com</p>
-            </div>
-            <div>
-              <h3 className="font-bold text-lg mb-4 text-yellow-600">Services</h3>
-              <p className="text-gray-400 text-sm mb-2">Livraison rapide en Côte d'Ivoire</p>
-              <p className="text-gray-400 text-sm mb-2">Paiement sécurisé</p>
-              <p className="text-gray-400 text-sm">Support client 24/7</p>
-            </div>
-            <div>
-              <h3 className="font-bold text-lg mb-4 text-yellow-600">Moyens de paiement</h3>
-              <p className="text-gray-400 text-sm mb-2">Stripe (Cartes bancaires)</p>
-              <p className="text-gray-400 text-sm mb-2">Wave Money</p>
-              <p className="text-gray-400 text-sm mb-2">Moov Money</p>
-              <p className="text-gray-400 text-sm">Paiement à la livraison</p>
-            </div>
-            <div>
-              <h3 className="font-bold text-lg mb-4 text-yellow-600">Accès Webmail</h3>
-              <a
-                href="https://cpl84.hosting24.com:2096/cpsess5529760598/3rdparty/roundcube/?_task=mail&_mbox=INBOX"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white font-semibold rounded-lg transition-colors duration-300"
-              >
-                <Settings className="w-4 h-4" />
-                Accéder aux Emails
-              </a>
-              <p className="text-gray-400 text-sm mt-3">Accès sécurisé à vos boîtes email professionnelles</p>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
-            <p className="transition-all duration-200">
-              &copy; 2
-              <a
-                href="/admin"
-                className="inline-block px-1 py-0.5 rounded hover:bg-blue-500 hover:text-white hover:scale-110 transition-all duration-200 cursor-pointer font-bold text-gray-400 hover:text-white underline decoration-blue-500"
-                title="Accès Dashboard"
-              >
-                0
-              </a>
-              26 Cavaly Livre. Tous droits réservés.
-            </p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
-
