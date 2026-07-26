@@ -112,13 +112,33 @@ export default function AdminDashboard() {
     } catch { return []; }
   };
 
-  const openModal = (type: string, list: any) => {
+  const openModal = async (type: string, list: any) => {
     setActionMenu(null);
     if (type === 'edit-product' && list) {
       setProductForm({title:list.title||'',author:list.author||'',price:list.price||'',stock:String(list.stock||0),categoryId:String(list.categoryId||1),description:list.description||'',coverImageUrl:list.coverImageUrl||''});
     }
     if (list.quotedItems) {
       try { setQuoteItems(JSON.parse(list.quotedItems)); } catch { setQuoteItems([{designation:"",quantite:1,prixUnitaire:0}]); }
+    } else if (list.fileData && (list.fileType === "word" || list.fileType === "document")) {
+      // Parser le Word directement dans le navigateur
+      try {
+        const base64 = list.fileData.split(",")[1] || list.fileData;
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        const result = await mammoth.extractRawText({ arrayBuffer: bytes.buffer });
+        const lines = result.value.split("
+");
+        const parsed: QuoteItem[] = [];
+        lines.forEach((line: string) => {
+          const clean = line.trim().replace(/[*_]+/g, "").trim();
+          const match = clean.match(/^(\d+)\s+(.{3,})/);
+          if (match && parsed.length < 50) {
+            parsed.push({ designation: match[2].trim().substring(0, 100), quantite: parseInt(match[1]), prixUnitaire: 0 });
+          }
+        });
+        setQuoteItems(parsed.length > 0 ? parsed : [{designation:"",quantite:1,prixUnitaire:0}]);
+      } catch(e) { setQuoteItems([{designation:"",quantite:1,prixUnitaire:0}]); }
     } else if (list.extractedText) {
       // Parser le texte extrait pour pré-remplir le devis
       const lines = list.extractedText.split("\n");
