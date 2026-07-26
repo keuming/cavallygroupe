@@ -20,7 +20,8 @@ export default function AdminDashboard() {
   const [productForm, setProductForm] = useState({title:"",author:"",price:"",stock:"",categoryId:"1",description:"",coverImageUrl:""});
   const [search, setSearch] = useState("");
 
-  const { data: supplyLists, refetch: refetchLists } = trpc.supplyLists.getAll.useQuery();
+  const { data: me } = trpc.auth.me.useQuery();
+  const { data: supplyLists, refetch: refetchLists } = trpc.supplyLists.getAll.useQuery(undefined, { enabled: Boolean(me) });
   const { data: allOrders } = trpc.orderManagement.getAllOrders.useQuery();
   const { data: stats } = trpc.admin.getStats.useQuery();
   const { data: products, refetch: refetchProducts } = trpc.admin.listProducts.useQuery({});
@@ -29,6 +30,12 @@ export default function AdminDashboard() {
   const addProductMutation = trpc.admin.createProduct.useMutation({ onSuccess: () => { refetchProducts(); setModal(null); setProductForm({title:"",author:"",price:"",stock:"",categoryId:"1",description:"",coverImageUrl:""}); }});
   const updateProductMutation = trpc.admin.updateProduct.useMutation({ onSuccess: () => { refetchProducts(); setModal(null); }});
   const deleteProductMutation = trpc.admin.deleteProduct.useMutation({ onSuccess: () => refetchProducts() });
+
+  // Rediriger vers login si pas connecté
+  if (me === null) {
+    window.location.href = "/login";
+    return null;
+  }
 
   const statusCfg: Record<string, {label:string; color:string; icon:any}> = {
     uploaded:   { label:"Nouvelle",      color:"bg-blue-100 text-blue-700",   icon:Clock },
