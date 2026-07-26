@@ -53,6 +53,7 @@ export default function AdminDashboard() {
   const { data: products, refetch: refetchProducts } = trpc.admin.listProducts.useQuery({});
   const { data: users } = trpc.admin.listUsers.useQuery();
   const updateStatusMutation = trpc.admin.updateSupplyListStatus.useMutation({ onSuccess: () => refetchLists() });
+  const analyzeListMutation = trpc.admin.analyzeSupplyList.useMutation();
   const addProductMutation = trpc.admin.createProduct.useMutation({ onSuccess: () => { refetchProducts(); setModal(null); setProductForm({title:"",author:"",price:"",stock:"",categoryId:"1",description:"",coverImageUrl:""}); }});
   const updateProductMutation = trpc.admin.updateProduct.useMutation({ onSuccess: () => { refetchProducts(); setModal(null); }});
   const deleteProductMutation = trpc.admin.deleteProduct.useMutation({ onSuccess: () => refetchProducts() });
@@ -134,55 +135,28 @@ export default function AdminDashboard() {
     }
     setModal({ type: "loading", list });
     try {
-      const base64 = list.fileData.split(",")[1] || list.fileData;
-      const resp = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6", max_tokens: 4000,
-          messages: [{ role: "user", content: [
-            { type: "document", source: { type: "base64", media_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", data: base64 } },
-            { type: "text", text: "Extrais et retranscris fidèlement tout le contenu de ce document. Garde la structure et les listes." }
-          ]}]
-        })
-      });
-      const data = await resp.json();
-      const text = data.content?.[0]?.text || "Impossible d'extraire";
-      setViewingFile({ content: text, name: list.fileName });
+      const result = await analyzeListMutation.mutateAsync({ id: list.id, mode: "view" });
+      setViewingFile({ content: result.content, name: list.fileName });
       setModal({ type: "view-text", list });
-    } catch(e) { alert("Erreur. Utilisez Télécharger."); setModal(null); }
+    } catch(e) { alert("Erreur affichage."); setModal(null); }
   };
 
   const parseWordToQuote = async (list: any) => {
-    if (!list.fileData) return;
     setModal({ type: "loading", list });
     try {
-      const base64 = list.fileData.split(",")[1] || list.fileData;
-      const resp = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6", max_tokens: 2000,
-          messages: [{ role: "user", content: [
-            { type: "document", source: { type: "base64", media_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", data: base64 } },
-            { type: "text", text: "Extrais tous les articles de cette liste scolaire avec quantites. Reponds UNIQUEMENT en JSON valide: [{quantite:1,designation:article complet}]. Pas de texte hors JSON." }
-          ]}]
-        })
-      });
-      const data = await resp.json();
-      const text = (data.content?.[0]?.text || "[]").replace(/```json|```/g,"").trim();
-      const parsed = JSON.parse(text);
+      const result = await analyzeListMutation.mutateAsync({ id: list.id, mode: "quote" });
+      const clean = result.content.replace(/```json|```/g,"").trim();
+      const parsed = JSON.parse(clean);
       const items: QuoteItem[] = parsed.map((p: any) => ({
-        designation: String(p.designation || p.nom || ""),
-        quantite: Number(p.quantite || 1),
+        designation: String(p.designation || p.nom || p.article || ""),
+        quantite: Number(p.quantite || p.qte || 1),
         prixUnitaire: 0
       }));
       setQuoteItems(items.length > 0 ? items : [{designation:"",quantite:1,prixUnitaire:0}]);
-      setModal({ type: "quote", list });
     } catch(e) {
       setQuoteItems([{designation:"",quantite:1,prixUnitaire:0}]);
-      setModal({ type: "quote", list });
     }
+    setModal({ type: "quote", list });
   };
 
   const openModal = async (type: string, list: any) => {

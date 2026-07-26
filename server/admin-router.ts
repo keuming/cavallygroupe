@@ -208,6 +208,42 @@ export const adminRouter = router({
     return result;
   }),
 
+  analyzeSupplyList: adminProcedure
+    .input(z.object({ id: z.number(), mode: z.enum(["view","quote"]) }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const { supplyLists } = await import('../drizzle/schema');
+      const { eq: eqOp } = await import('drizzle-orm');
+      const result = await db.select().from(supplyLists).where(eqOp(supplyLists.id, input.id)).limit(1);
+      if (!result[0]?.fileData) throw new Error("Fichier non disponible");
+      
+      const base64 = result[0].fileData.split(",")[1] || result[0].fileData;
+      const prompt = input.mode === "view"
+        ? "Extrais et retranscris fidèlement tout le contenu de ce document Word. Garde la structure et les listes."
+        : "Extrais tous les articles de cette liste scolaire avec quantités. Réponds UNIQUEMENT en JSON valide sans texte avant/après: [{"quantite":1,"designation":"article complet"}]";
+      
+      const resp = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.ANTHROPIC_API_KEY || "",
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 4000,
+          messages: [{ role: "user", content: [
+            { type: "document", source: { type: "base64", media_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", data: base64 } },
+            { type: "text", text: prompt }
+          ]}]
+        })
+      });
+      const data = await resp.json();
+      const text = data.content?.[0]?.text || "";
+      return { success: true, content: text };
+    }),
+
   // Update Category
   updateCategory: adminProcedure
     .input(z.object({
