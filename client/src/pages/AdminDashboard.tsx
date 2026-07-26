@@ -18,6 +18,7 @@ export default function AdminDashboard() {
   const [actionMenu, setActionMenu] = useState<number | null>(null);
   const [modal, setModal] = useState<{type: string; list: any} | null>(null);
   const [quoteItems, setQuoteItems] = useState<QuoteItem[]>([{designation:"",quantite:1,prixUnitaire:0}]);
+  const [productForm, setProductForm] = useState({title:"",author:"",price:"",stock:"",categoryId:"1",description:"",coverImageUrl:""});
   const [search, setSearch] = useState("");
 
   const { data: supplyLists, refetch: refetchLists } = trpc.supplyLists.getAll.useQuery();
@@ -25,6 +26,8 @@ export default function AdminDashboard() {
   const { data: products, refetch: refetchProducts } = trpc.admin.listProducts.useQuery({});
   const { data: users } = trpc.admin.listUsers.useQuery();
   const updateStatusMutation = trpc.admin.updateSupplyListStatus.useMutation({ onSuccess: () => refetchLists() });
+  const addProductMutation = trpc.admin.createProduct.useMutation({ onSuccess: () => { refetchProducts(); setModal(null); setProductForm({title:"",author:"",price:"",stock:"",categoryId:"1",description:"",coverImageUrl:""}); }});
+  const updateProductMutation = trpc.admin.updateProduct.useMutation({ onSuccess: () => { refetchProducts(); setModal(null); }});
   const deleteProductMutation = trpc.admin.deleteProduct.useMutation({ onSuccess: () => refetchProducts() });
 
   const statusCfg: Record<string, {label:string; color:string; icon:any}> = {
@@ -69,6 +72,9 @@ export default function AdminDashboard() {
 
   const openModal = (type: string, list: any) => {
     setActionMenu(null);
+    if (type === 'edit-product' && list) {
+      setProductForm({title:list.title||'',author:list.author||'',price:list.price||'',stock:String(list.stock||0),categoryId:String(list.categoryId||1),description:list.description||'',coverImageUrl:list.coverImageUrl||''});
+    }
     if (list.quotedItems) {
       try { setQuoteItems(JSON.parse(list.quotedItems)); } catch { setQuoteItems([{designation:"",quantite:1,prixUnitaire:0}]); }
     } else {
@@ -596,6 +602,68 @@ export default function AdminDashboard() {
                       Confirmer l'envoi facture
                     </button>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Modal: Ajouter/Modifier produit */}
+            {(modal.type === "add-product" || modal.type === "edit-product") && (
+              <div>
+                <div className="p-5 border-b bg-[#005f8a] text-white">
+                  <h3 className="font-bold text-lg">{modal.type === "add-product" ? "Ajouter un produit" : "Modifier le produit"}</h3>
+                </div>
+                <div className="p-5 space-y-4">
+                  {[
+                    {label:"Titre *", field:"title", type:"text", placeholder:"Nom du livre"},
+                    {label:"Auteur", field:"author", type:"text", placeholder:"Nom de l'auteur"},
+                    {label:"Prix (FCFA) *", field:"price", type:"number", placeholder:"Ex: 5000"},
+                    {label:"Stock *", field:"stock", type:"number", placeholder:"Ex: 10"},
+                    {label:"URL Image (Cloudinary)", field:"coverImageUrl", type:"text", placeholder:"https://res.cloudinary.com/..."},
+                    {label:"Description", field:"description", type:"text", placeholder:"Description courte"},
+                  ].map(f => (
+                    <div key={f.field}>
+                      <label className="text-sm font-medium text-gray-700 mb-1 block">{f.label}</label>
+                      <input
+                        type={f.type}
+                        value={(productForm as any)[f.field]}
+                        onChange={e => setProductForm(prev => ({...prev, [f.field]: e.target.value}))}
+                        placeholder={f.placeholder}
+                        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-[#005f8a] outline-none"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="p-5 border-t flex gap-3">
+                  <button onClick={() => setModal(null)} className="flex-1 py-2 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50">Annuler</button>
+                  <button
+                    onClick={() => {
+                      if (!productForm.title || !productForm.price || !productForm.stock) return alert("Titre, prix et stock requis");
+                      if (modal.type === "add-product") {
+                        addProductMutation.mutate({
+                          title: productForm.title,
+                          author: productForm.author,
+                          price: productForm.price,
+                          stock: parseInt(productForm.stock),
+                          categoryId: parseInt(productForm.categoryId),
+                          description: productForm.description,
+                          coverImageUrl: productForm.coverImageUrl,
+                        });
+                      } else {
+                        updateProductMutation.mutate({
+                          id: modal.list.id,
+                          title: productForm.title,
+                          author: productForm.author,
+                          price: productForm.price,
+                          stock: parseInt(productForm.stock),
+                          description: productForm.description,
+                          coverImageUrl: productForm.coverImageUrl,
+                        });
+                      }
+                    }}
+                    className="flex-1 py-2 bg-[#005f8a] text-white rounded-xl font-bold hover:bg-[#004a6b]"
+                  >
+                    {modal.type === "add-product" ? "Ajouter" : "Enregistrer"}
+                  </button>
                 </div>
               </div>
             )}
