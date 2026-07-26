@@ -491,6 +491,11 @@ export default function AdminDashboard() {
                                     </button>
                                   )}
                                   {list.fileData && (
+                                    <button onClick={() => { viewFile(list); setActionMenu(null); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                                      <Eye className="w-4 h-4 text-green-500" /> Afficher le fichier
+                                    </button>
+                                  )}
+                                  {list.fileData && (
                                     <button onClick={() => { downloadFile(list); setActionMenu(null); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
                                       <Download className="w-4 h-4 text-gray-500" /> Télécharger fichier
                                     </button>

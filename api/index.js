@@ -39231,7 +39231,9 @@ var appRouter = router({
           const DB = await getDb();
           const { supplyLists: sl } = await Promise.resolve().then(() => (init_schema2(), schema_exports));
           const { eq: eqOp } = await Promise.resolve().then(() => (init_drizzle_orm(), drizzle_orm_exports));
-          if (DB) await DB.update(sl).set({ extractedText }).where(eqOp(sl.id, result.id));
+          if (DB) {
+            if (DB) await DB.update(sl).set({ extractedText }).where(eqOp(sl.id, result.id));
+          }
         } catch (e) {
           console.error("[SupplyList] Save text error:", e);
         }
