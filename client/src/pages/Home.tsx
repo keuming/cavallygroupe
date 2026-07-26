@@ -387,14 +387,14 @@ export default function Home() {
 
             <div className="mt-8 pt-6 border-t border-gray-200">
               <Button
-                onClick={() => navigate("/quick-order")}
-                className="w-full bg-gradient-to-r from-[#FFC107] to-[#FFA000] hover:from-blue-600 hover:to-blue-700 text-white shadow-md hover:shadow-lg transition-all"
+                onClick={() => navigate("/supply-list-upload")}
+                className="w-full bg-gradient-to-r from-[#005f8a] to-[#0080b8] hover:from-[#004a6b] hover:to-[#006a9a] text-white shadow-md hover:shadow-lg transition-all"
               >
                 <Upload className="w-4 h-4 mr-2" />
-                COMMANDEZ ICI
+                ENVOYER MA LISTE
               </Button>
-              <p className="text-xs text-gray-600 mt-3 text-center leading-relaxed">
-                Uploadez votre liste de fournitures et recevez une facture automatique
+              <p className="text-xs text-gray-500 mt-3 text-center leading-relaxed">
+                📋 Uploadez votre liste (PDF, Word, Photo) — Devis sous 24h
               </p>
             </div>
           </div>
