@@ -13,7 +13,7 @@ interface QuoteItem { designation: string; quantite: number; prixUnitaire: numbe
 
 // ---- Composant principal ----
 export default function AdminDashboard() {
-  const [tab, setTab] = useState<"listes" | "commandes" | "produits" | "clients" | "stats">("listes");
+  const [tab, setTab] = useState<"accueil" | "listes" | "commandes" | "produits" | "clients" | "stats">("accueil");
   const [actionMenu, setActionMenu] = useState<number | null>(null);
   const [modal, setModal] = useState<{type: string; list: any} | null>(null);
   const [quoteItems, setQuoteItems] = useState<QuoteItem[]>([{designation:"",quantite:1,prixUnitaire:0}]);
@@ -106,6 +106,7 @@ export default function AdminDashboard() {
   ) || [];
 
   const navTabs = [
+    { id: "accueil",   label: "Accueil",    icon: BarChart3,badge: null },
     { id: "listes",    label: "Listes",     icon: Upload,   badge: supplyLists?.filter((l:any)=>l.status==="uploaded").length },
     { id: "commandes", label: "Commandes",  icon: Package,  badge: null },
     { id: "produits",  label: "Produits",   icon: BookOpen, badge: null },
@@ -165,6 +166,129 @@ export default function AdminDashboard() {
       </header>
 
       <div className="container mx-auto px-4 py-6 max-w-7xl">
+
+        {/* ===== ONGLET ACCUEIL ===== */}
+        {tab === "accueil" && (
+          <div className="space-y-6">
+            {/* Bonjour */}
+            <div className="bg-gradient-to-r from-[#005f8a] to-[#0080b8] rounded-2xl p-6 text-white">
+              <p className="text-blue-100 text-sm mb-1">{new Date().toLocaleDateString("fr-FR", {weekday:"long",day:"numeric",month:"long",year:"numeric"})}</p>
+              <h2 className="text-2xl font-bold">Bonjour, bonne journée ! 👋</h2>
+              <p className="text-blue-100 mt-1 text-sm">Voici un aperçu de votre activité Cavally Livres</p>
+            </div>
+
+            {/* KPI principaux */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                { label:"Listes reçues",    value: supplyLists?.length||0,            sub: `${supplyLists?.filter((l:any)=>l.status==="uploaded").length||0} nouvelles`,  icon:"📋", color:"bg-blue-50 border-blue-200",    vcolor:"text-blue-600" },
+                { label:"Commandes",         value: allOrders?.length||0,              sub: `${allOrders?.filter((o:any)=>o.status==="pending").length||0} en attente`,    icon:"📦", color:"bg-orange-50 border-orange-200",  vcolor:"text-orange-600" },
+                { label:"Clients",           value: users?.length||0,                  sub: "comptes créés",                                                               icon:"👥", color:"bg-green-50 border-green-200",    vcolor:"text-green-600" },
+                { label:"Produits",          value: stats?.totalProducts||0,           sub: "dans le catalogue",                                                           icon:"📚", color:"bg-purple-50 border-purple-200",  vcolor:"text-purple-600" },
+              ].map(kpi => (
+                <div key={kpi.label} className={`${kpi.color} border rounded-2xl p-5`}>
+                  <div className="text-3xl mb-3">{kpi.icon}</div>
+                  <p className={`text-3xl font-bold ${kpi.vcolor}`}>{kpi.value}</p>
+                  <p className="text-sm font-medium text-gray-700 mt-1">{kpi.label}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{kpi.sub}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Revenus & Listes en attente */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Revenus */}
+              <div className="bg-white rounded-2xl border shadow-sm p-5">
+                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  💰 Revenus commandes directes
+                </h3>
+                <p className="text-4xl font-bold text-[#005f8a]">
+                  {(allOrders?.reduce((s:number,o:any)=>s+Number(o.totalAmount||0),0)||0).toLocaleString()} <span className="text-lg font-normal text-gray-400">FCFA</span>
+                </p>
+                <p className="text-sm text-gray-500 mt-2">{allOrders?.filter((o:any)=>o.status==="delivered").length||0} commandes livrées</p>
+                <div className="mt-4 space-y-2">
+                  {[
+                    {label:"En attente",    count:allOrders?.filter((o:any)=>o.status==="pending").length||0,    color:"bg-blue-400"},
+                    {label:"Confirmées",    count:allOrders?.filter((o:any)=>o.status==="confirmed").length||0,  color:"bg-green-400"},
+                    {label:"En livraison",  count:allOrders?.filter((o:any)=>o.status==="in_transit").length||0, color:"bg-yellow-400"},
+                    {label:"Livrées",       count:allOrders?.filter((o:any)=>o.status==="delivered").length||0,  color:"bg-emerald-400"},
+                  ].map(s => (
+                    <div key={s.label} className="flex items-center gap-3">
+                      <div className={`w-2 h-2 rounded-full ${s.color}`} />
+                      <span className="text-sm text-gray-600 flex-1">{s.label}</span>
+                      <span className="font-bold text-sm">{s.count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Listes en attente */}
+              <div className="bg-white rounded-2xl border shadow-sm p-5">
+                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  📋 Listes à traiter
+                  {supplyLists?.filter((l:any)=>l.status==="uploaded").length ? (
+                    <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                      {supplyLists?.filter((l:any)=>l.status==="uploaded").length} urgentes
+                    </span>
+                  ) : null}
+                </h3>
+                {supplyLists?.filter((l:any)=>l.status==="uploaded" || l.status==="processing").length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-4xl mb-2">✅</p>
+                    <p className="text-gray-500 text-sm">Toutes les listes sont traitées !</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {supplyLists?.filter((l:any)=>l.status==="uploaded"||l.status==="processing").slice(0,4).map((list:any) => (
+                      <div key={list.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-blue-50 transition-colors cursor-pointer" onClick={()=>setTab("listes")}>
+                        <span className="text-2xl">{list.fileType==="pdf"?"📄":list.fileType==="image"?"🖼️":"📝"}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm text-gray-900 truncate">{list.customerName||"Anonyme"}</p>
+                          <p className="text-xs text-gray-500">{list.customerPhone} • {new Date(list.createdAt).toLocaleDateString("fr-FR")}</p>
+                        </div>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${list.status==="uploaded"?"bg-blue-100 text-blue-700":"bg-yellow-100 text-yellow-700"}`}>
+                          {list.status==="uploaded"?"Nouvelle":"En cours"}
+                        </span>
+                      </div>
+                    ))}
+                    {(supplyLists?.filter((l:any)=>l.status==="uploaded"||l.status==="processing").length||0) > 4 && (
+                      <button onClick={()=>setTab("listes")} className="text-sm text-[#005f8a] hover:underline w-full text-center pt-1">
+                        Voir toutes les listes →
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Actions rapides */}
+            <div className="bg-white rounded-2xl border shadow-sm p-5">
+              <h3 className="font-bold text-gray-900 mb-4">⚡ Actions rapides</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { label:"Voir les listes",    icon:"📋", tab:"listes",    color:"bg-blue-50 hover:bg-blue-100 text-blue-700" },
+                  { label:"Voir commandes",      icon:"📦", tab:"commandes", color:"bg-orange-50 hover:bg-orange-100 text-orange-700" },
+                  { label:"Ajouter produit",     icon:"➕", tab:"produits",  color:"bg-purple-50 hover:bg-purple-100 text-purple-700" },
+                  { label:"Voir clients",        icon:"👥", tab:"clients",   color:"bg-green-50 hover:bg-green-100 text-green-700" },
+                ].map(a => (
+                  <button key={a.label} onClick={()=>setTab(a.tab as any)} className={`${a.color} rounded-xl p-4 text-center transition-colors`}>
+                    <div className="text-2xl mb-2">{a.icon}</div>
+                    <p className="text-sm font-medium">{a.label}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Contact */}
+            <div className="bg-gray-50 rounded-2xl border p-5">
+              <h3 className="font-bold text-gray-700 mb-3 text-sm uppercase tracking-wide">📞 Service Client</h3>
+              <div className="flex flex-wrap gap-4 text-sm">
+                <a href="tel:+2250173924646" className="flex items-center gap-2 text-[#005f8a] hover:underline">📱 +225 01 73 92 46 46</a>
+                <a href="tel:+2250501956464" className="flex items-center gap-2 text-[#005f8a] hover:underline">📱 +225 05 01 95 64 64</a>
+                <a href="mailto:service.client@cavally-livres.com" className="flex items-center gap-2 text-[#005f8a] hover:underline">📧 service.client@cavally-livres.com</a>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ===== ONGLET LISTES ===== */}
         {tab === "listes" && (
