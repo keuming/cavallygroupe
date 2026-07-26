@@ -63,18 +63,33 @@ function getTransporter() {
   }
 
   // Production: Use actual SMTP
-  const smtpHost = process.env.MAIL_SERVER || 'smtp-relay.brevo.com';
-  const smtpPort = Number(process.env.MAIL_PORT || 587);
-  const smtpUser = process.env.MAIL_USER || 'b28877001@smtp-brevo.com';
-  const smtpPass = process.env.MAIL_KEY || '';
-  console.log('[SMTP] host:', smtpHost, '| user:', smtpUser, '| auth:', Boolean(smtpPass));
-  return nodemailer.createTransport({
-    host: smtpHost,
-    port: smtpPort,
-    secure: false,
-    auth: smtpPass ? { user: smtpUser, pass: smtpPass } : undefined,
-    tls: { rejectUnauthorized: false },
-  });
+  // Utiliser un faux transporter - on envoie via API Brevo directement
+  return {
+    sendMail: async (options: EmailOptions) => {
+      const apiKey = process.env.BREVO_API_KEY || process.env.MAIL_KEY || '';
+      console.log('[Brevo API] sending to:', options.to, '| hasKey:', Boolean(apiKey));
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'content-type': 'application/json',
+          'api-key': apiKey,
+        },
+        body: JSON.stringify({
+          sender: { name: 'Cavally Livres', email: 'service.client@cavally-livres.com' },
+          to: [{ email: options.to }],
+          subject: options.subject,
+          htmlContent: options.html,
+        }),
+      });
+      if (!response.ok) {
+        const err = await response.text();
+        throw new Error('Brevo API error: ' + err);
+      }
+      const data = await response.json();
+      return { messageId: data.messageId || 'sent' };
+    },
+  } as any;
 }
 
 /**

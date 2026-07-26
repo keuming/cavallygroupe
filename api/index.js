@@ -16930,18 +16930,32 @@ function getTransporter() {
       }
     };
   }
-  const smtpHost = process.env.MAIL_SERVER || "smtp-relay.brevo.com";
-  const smtpPort = Number(process.env.MAIL_PORT || 587);
-  const smtpUser = process.env.MAIL_USER || "b28877001@smtp-brevo.com";
-  const smtpPass = process.env.MAIL_KEY || "";
-  console.log("[SMTP] host:", smtpHost, "| user:", smtpUser, "| auth:", Boolean(smtpPass));
-  return import_nodemailer.default.createTransport({
-    host: smtpHost,
-    port: smtpPort,
-    secure: false,
-    auth: smtpPass ? { user: smtpUser, pass: smtpPass } : void 0,
-    tls: { rejectUnauthorized: false }
-  });
+  return {
+    sendMail: async (options) => {
+      const apiKey = process.env.BREVO_API_KEY || process.env.MAIL_KEY || "";
+      console.log("[Brevo API] sending to:", options.to, "| hasKey:", Boolean(apiKey));
+      const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "api-key": apiKey
+        },
+        body: JSON.stringify({
+          sender: { name: "Cavally Livres", email: "service.client@cavally-livres.com" },
+          to: [{ email: options.to }],
+          subject: options.subject,
+          htmlContent: options.html
+        })
+      });
+      if (!response.ok) {
+        const err = await response.text();
+        throw new Error("Brevo API error: " + err);
+      }
+      const data = await response.json();
+      return { messageId: data.messageId || "sent" };
+    }
+  };
 }
 function generateOrderConfirmationHTML(data) {
   const itemsHTML = data.items.map(
@@ -17204,11 +17218,9 @@ async function sendPaymentConfirmationEmail(customerEmail, customerName, orderNu
     return false;
   }
 }
-var import_nodemailer;
 var init_email_service = __esm({
   "server/email-service.ts"() {
     "use strict";
-    import_nodemailer = __toESM(require("nodemailer"), 1);
   }
 });
 
@@ -39201,8 +39213,8 @@ var appRouter = router({
       });
       try {
         const { sendOrderConfirmationEmail: sendOrderConfirmationEmail2 } = await Promise.resolve().then(() => (init_email_service(), email_service_exports));
-        const nodemailer2 = await import("nodemailer");
-        const transporter = nodemailer2.default.createTransport({
+        const nodemailer = await import("nodemailer");
+        const transporter = nodemailer.default.createTransport({
           host: process.env.SMTP_HOST || "smtp-relay.brevo.com",
           port: Number(process.env.SMTP_PORT || 587),
           secure: false,
