@@ -107,19 +107,7 @@ export default function AdminDashboard() {
     } catch(e) { alert("Erreur téléchargement: " + e); }
   };
 
-  const viewFile = (list: any) => {
-    if (!list.fileData) return alert("Fichier non disponible");
-    // Ouvrir dans un nouvel onglet
-    const win = window.open();
-    if (!win) return;
-    if (list.fileType === "image") {
-      win.document.write(`<img src="${list.fileData}" style="max-width:100%" />`);
-    } else if (list.fileType === "pdf") {
-      win.location.href = list.fileData;
-    } else {
-      win.document.write(`<pre style="white-space:pre-wrap;font-family:sans-serif;padding:20px">${list.extractedText || "Aperçu non disponible pour ce type de fichier. Utilisez Télécharger."}</pre>`);
-    }
-  };
+
 
   // Parser le contenu d'un fichier Word/texte pour extraire les items
   const parseFileToQuoteItems = (fileData: string, fileName: string): QuoteItem[] => {
@@ -128,6 +116,73 @@ export default function AdminDashboard() {
       // Le texte extrait est dans extractedText si disponible
       return [];
     } catch { return []; }
+  };
+
+  const [viewingFile, setViewingFile] = useState<{content: string; name: string} | null>(null);
+
+  const viewFile = async (list: any) => {
+    if (!list.fileData) return alert("Fichier non disponible");
+    if (list.fileType === "image") {
+      setViewingFile({ content: list.fileData, name: list.fileName });
+      setModal({ type: "view-image", list });
+      return;
+    }
+    if (list.fileType === "pdf") {
+      const win = window.open();
+      if (win) win.location.href = list.fileData;
+      return;
+    }
+    setModal({ type: "loading", list });
+    try {
+      const base64 = list.fileData.split(",")[1] || list.fileData;
+      const resp = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6", max_tokens: 4000,
+          messages: [{ role: "user", content: [
+            { type: "document", source: { type: "base64", media_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", data: base64 } },
+            { type: "text", text: "Extrais et retranscris fidèlement tout le contenu de ce document. Garde la structure et les listes." }
+          ]}]
+        })
+      });
+      const data = await resp.json();
+      const text = data.content?.[0]?.text || "Impossible d'extraire";
+      setViewingFile({ content: text, name: list.fileName });
+      setModal({ type: "view-text", list });
+    } catch(e) { alert("Erreur. Utilisez Télécharger."); setModal(null); }
+  };
+
+  const parseWordToQuote = async (list: any) => {
+    if (!list.fileData) return;
+    setModal({ type: "loading", list });
+    try {
+      const base64 = list.fileData.split(",")[1] || list.fileData;
+      const resp = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6", max_tokens: 2000,
+          messages: [{ role: "user", content: [
+            { type: "document", source: { type: "base64", media_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", data: base64 } },
+            { type: "text", text: "Extrais tous les articles de cette liste scolaire avec quantites. Reponds UNIQUEMENT en JSON valide: [{quantite:1,designation:article complet}]. Pas de texte hors JSON." }
+          ]}]
+        })
+      });
+      const data = await resp.json();
+      const text = (data.content?.[0]?.text || "[]").replace(/```json|```/g,"").trim();
+      const parsed = JSON.parse(text);
+      const items: QuoteItem[] = parsed.map((p: any) => ({
+        designation: String(p.designation || p.nom || ""),
+        quantite: Number(p.quantite || 1),
+        prixUnitaire: 0
+      }));
+      setQuoteItems(items.length > 0 ? items : [{designation:"",quantite:1,prixUnitaire:0}]);
+      setModal({ type: "quote", list });
+    } catch(e) {
+      setQuoteItems([{designation:"",quantite:1,prixUnitaire:0}]);
+      setModal({ type: "quote", list });
+    }
   };
 
   const openModal = async (type: string, list: any) => {
@@ -495,7 +550,14 @@ export default function AdminDashboard() {
                                       <Download className="w-4 h-4 text-gray-500" /> Télécharger fichier
                                     </button>
                                   )}
-                                  <button onClick={() => openModal("quote", list)} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                                  <button onClick={() => {
+                                    setActionMenu(null);
+                                    if (list.fileType === "word" || list.fileType === "document") {
+                                      parseWordToQuote(list);
+                                    } else {
+                                      openModal("quote", list);
+                                    }
+                                  }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
                                     <Table className="w-4 h-4 text-green-500" /> Convertir en Excel
                                   </button>
                                   <div className="border-t border-gray-100 my-1" />
@@ -928,6 +990,47 @@ export default function AdminDashboard() {
                       Confirmer l'envoi facture
                     </button>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Modal: Loading */}
+            {modal.type === "loading" && (
+              <div className="p-12 text-center">
+                <div className="w-12 h-12 border-4 border-[#005f8a] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                <p className="text-gray-600 font-medium">Analyse du document en cours...</p>
+                <p className="text-gray-400 text-sm mt-1">Claude AI extrait le contenu</p>
+              </div>
+            )}
+
+            {/* Modal: Afficher texte */}
+            {modal.type === "view-text" && viewingFile && (
+              <div>
+                <div className="p-4 border-b bg-gray-50 flex items-center justify-between">
+                  <h3 className="font-bold text-gray-900">{viewingFile.name}</h3>
+                  <button onClick={() => setModal(null)} className="text-gray-400 hover:text-gray-600">✕</button>
+                </div>
+                <div className="p-5 max-h-[60vh] overflow-y-auto">
+                  <pre className="whitespace-pre-wrap font-sans text-sm text-gray-700 leading-relaxed">{viewingFile.content}</pre>
+                </div>
+                <div className="p-4 border-t flex gap-3">
+                  <button onClick={() => setModal(null)} className="flex-1 py-2 border border-gray-200 rounded-xl text-gray-600">Fermer</button>
+                  <button onClick={() => { if(modal.list) parseWordToQuote(modal.list); }} className="flex-1 py-2 bg-[#005f8a] text-white rounded-xl font-bold">
+                    Créer le devis
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Modal: Afficher image */}
+            {modal.type === "view-image" && viewingFile && (
+              <div>
+                <div className="p-4 border-b flex items-center justify-between">
+                  <h3 className="font-bold">{viewingFile.name}</h3>
+                  <button onClick={() => setModal(null)}>✕</button>
+                </div>
+                <div className="p-4">
+                  <img src={viewingFile.content} alt="liste" className="w-full rounded-xl" />
                 </div>
               </div>
             )}
