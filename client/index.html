@@ -94,6 +94,73 @@
     @keyframes splash-bounce { 0%{transform:scale(0.5);opacity:0} 80%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1} }
     @keyframes splash-load { from{width:0} to{width:100%} }
   </style>
+  
+    <style>
+      /* Animations globales Cavally */
+      @keyframes fade-in-up {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes fade-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes scale-in {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+      }
+      @keyframes slide-in-left {
+        from { opacity: 0; transform: translateX(-20px); }
+        to { opacity: 1; transform: translateX(0); }
+      }
+      @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-8px); }
+      }
+      @keyframes pulse-blue {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(0,95,138,0.4); }
+        50% { box-shadow: 0 0 0 12px rgba(0,95,138,0); }
+      }
+      
+      .animate-fade-in-up { animation: fade-in-up 0.5s ease forwards; }
+      .animate-fade-in { animation: fade-in 0.4s ease forwards; }
+      .animate-scale-in { animation: scale-in 0.3s ease forwards; }
+      .animate-slide-in-left { animation: slide-in-left 0.4s ease forwards; }
+      .animate-float { animation: float 3s ease-in-out infinite; }
+      .animate-pulse-blue { animation: pulse-blue 2s ease-in-out infinite; }
+      
+      /* Délais d'animation */
+      .delay-100 { animation-delay: 0.1s; opacity: 0; }
+      .delay-200 { animation-delay: 0.2s; opacity: 0; }
+      .delay-300 { animation-delay: 0.3s; opacity: 0; }
+      .delay-400 { animation-delay: 0.4s; opacity: 0; }
+      
+      /* Hover animations */
+      .hover-lift { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+      .hover-lift:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,0.12); }
+      
+      /* Card shine effect */
+      .card-shine {
+        position: relative;
+        overflow: hidden;
+      }
+      .card-shine::after {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+        transform: translateX(-100%);
+        transition: transform 0.6s ease;
+      }
+      .card-shine:hover::after { transform: translateX(100%); }
+      
+      /* Scrollbar hide */
+      .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+      .scrollbar-hide::-webkit-scrollbar { display: none; }
+    </style>
   </head>
 
   <body>

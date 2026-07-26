@@ -9,6 +9,7 @@ import { getLoginUrl } from "@/const";
 import { PWAInstallBanner } from "@/components/PWAInstallBanner";
 import { ChatbotWidget, type Message } from "@/components/ChatbotWidget";
 import { AddToCartModal } from "@/components/AddToCartModal";
+import { Footer } from "@/components/Footer";
 import { ModernEducationMenu } from "@/components/ModernEducationMenu";
 
 export default function Home() {
@@ -191,7 +192,7 @@ export default function Home() {
         {!searchQuery && !selectedCategory && (
           <div className="mb-8">
             {/* Banner principal */}
-            <div className="bg-gradient-to-r from-[#005f8a] to-[#0080b8] rounded-2xl p-6 sm:p-10 text-white mb-4 relative overflow-hidden">
+            <div className="bg-gradient-to-r from-[#005f8a] to-[#0080b8] rounded-2xl p-6 sm:p-10 text-white mb-4 relative overflow-hidden animate-fade-in-up card-shine">
               <div className="absolute right-0 top-0 opacity-10 text-[200px] leading-none">📚</div>
               <div className="relative z-10 max-w-2xl">
                 <p className="text-blue-100 text-sm font-medium mb-2 uppercase tracking-wide">Cavally Livres — Abidjan</p>
@@ -205,7 +206,7 @@ export default function Home() {
                   {/* BOUTON PRINCIPAL */}
                   <button
                     onClick={() => navigate("/supply-list-upload")}
-                    className="flex items-center justify-center gap-3 px-8 py-4 bg-white text-[#005f8a] rounded-xl font-bold text-lg hover:bg-blue-50 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+                    className="flex items-center justify-center gap-3 px-8 py-4 bg-white text-[#005f8a] rounded-xl font-bold text-lg hover:bg-blue-50 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 animate-pulse-blue"
                   >
                     <Upload className="w-6 h-6" />
                     ENVOYER MA LISTE
@@ -231,7 +232,7 @@ export default function Home() {
                 { icon: "💰", title: "Recevez votre devis", desc: "Sous 24h par SMS/Email" },
                 { icon: "🚚", title: "Livraison rapide", desc: "Gratuite à Abidjan" },
               ].map(card => (
-                <div key={card.title} className={`rounded-xl p-4 text-center ${isDarkMode ? "bg-gray-800" : "bg-white"} shadow-sm`}>
+                <div key={card.title} className={`rounded-xl p-4 text-center ${isDarkMode ? "bg-gray-800" : "bg-white"} shadow-sm hover-lift animate-fade-in-up`}>
                   <div className="text-2xl mb-2">{card.icon}</div>
                   <p className="font-semibold text-sm text-gray-900 dark:text-white">{card.title}</p>
                   <p className="text-xs text-gray-500 mt-0.5">{card.desc}</p>
@@ -264,7 +265,7 @@ export default function Home() {
             {filtered.map((product: any) => (
               <div
                 key={product.id}
-                className={`rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group ${isDarkMode ? "bg-gray-800" : "bg-white"}`}
+                className={`rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group hover-lift ${isDarkMode ? "bg-gray-800" : "bg-white"}`}
                 onClick={() => navigate(`/product/${product.id}`)}
               >
                 <div className="relative h-48 overflow-hidden bg-gray-100">
@@ -329,6 +330,9 @@ export default function Home() {
           cartCount={totalCartCount + 1}
         />
       )}
+
+      {/* Footer */}
+      <Footer />
 
       {/* Chatbot */}
       <ChatbotWidget
