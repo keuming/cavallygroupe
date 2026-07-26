@@ -82,8 +82,8 @@ export function PWAInstallBanner() {
               <div className="space-y-2">
                 {[
                   { n: "1", t: "Appuyez sur le bouton Partager", icon: "⎙" },
-                  { n: "2", t: "Sélectionnez "Sur l'écran d'accueil"", icon: "➕" },
-                  { n: "3", t: "Appuyez sur "Ajouter"", icon: "✓" },
+                  { n: "2", t: "Selectionnez: Sur l'ecran d'accueil", icon: "➕" },
+                  { n: "3", t: "Appuyez sur: Ajouter", icon: "✓" },
                 ].map(s => (
                   <div key={s.n} className="flex items-center gap-3 bg-gray-50 rounded-lg p-2">
                     <span className="text-lg">{s.icon}</span>
