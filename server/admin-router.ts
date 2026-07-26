@@ -216,31 +216,44 @@ export const adminRouter = router({
       const { supplyLists } = await import('../drizzle/schema');
       const { eq: eqOp } = await import('drizzle-orm');
       const result = await db.select().from(supplyLists).where(eqOp(supplyLists.id, input.id)).limit(1);
-      if (!result[0]?.fileData) throw new Error("Fichier non disponible");
+      if (!result[0]) throw new Error("Liste non trouvée");
       
-      const rawBase64 = result[0].fileData.split(",")[1] || result[0].fileData;
-      // Limiter la taille pour éviter les timeouts (max 500KB base64)
-      const base64 = rawBase64.length > 700000 ? rawBase64.substring(0, 700000) : rawBase64;
+      const list = result[0];
+      
+      // Si le texte est déjà extrait, le retourner directement
+      if (list.extractedText && input.mode === "view") {
+        return { success: true, content: list.extractedText };
+      }
+      if (list.extractedText && input.mode === "quote") {
+        // Parser le texte extrait pour générer le JSON
+        const lines = list.extractedText.split("
+");
+        const items: Array<{quantite: number, designation: string}> = [];
+        lines.forEach(line => {
+          const clean = line.trim().replace(/[*_]+/g, "");
+          const match = clean.match(/^(\d+)\s+(.{3,})/);
+          if (match) items.push({ quantite: parseInt(match[1]), designation: match[2].trim().substring(0, 100) });
+        });
+        return { success: true, content: JSON.stringify(items) };
+      }
+      
+      // Sinon extraire depuis le fichier et sauvegarder
+      if (!list.fileData) throw new Error("Fichier non disponible");
+      const rawBase64 = list.fileData.split(",")[1] || list.fileData;
+      const base64 = rawBase64.length > 500000 ? rawBase64.substring(0, 500000) : rawBase64;
       
       const prompt = input.mode === "view"
-        ? "Extrais et retranscris le contenu de ce document. Limite ta reponse a 2000 mots maximum."
-        : "Extrais tous les articles de cette liste scolaire avec quantites. Reponds UNIQUEMENT en JSON sans texte: [{quantite:1,designation:article}]";
+        ? "Extrais et retranscris le contenu de ce document Word. Maximum 1500 mots."
+        : "Extrais les articles de cette liste avec quantites. JSON uniquement: [{quantite:1,designation:article}]";
       
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 25000);
-      
+      const timeout = setTimeout(() => controller.abort(), 20000);
       try {
         const resp = await fetch("https://api.anthropic.com/v1/messages", {
-          method: "POST",
-          signal: controller.signal,
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": process.env.ANTHROPIC_API_KEY || "",
-            "anthropic-version": "2023-06-01",
-          },
+          method: "POST", signal: controller.signal,
+          headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY || "", "anthropic-version": "2023-06-01" },
           body: JSON.stringify({
-            model: "claude-haiku-4-5-20251001",
-            max_tokens: 2000,
+            model: "claude-haiku-4-5-20251001", max_tokens: 1500,
             messages: [{ role: "user", content: [
               { type: "document", source: { type: "base64", media_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", data: base64 } },
               { type: "text", text: prompt }
@@ -250,11 +263,14 @@ export const adminRouter = router({
         clearTimeout(timeout);
         const data = await resp.json();
         const text = data.content?.[0]?.text || "";
+        // Sauvegarder pour les prochains appels
+        if (text && input.mode === "view") {
+          await db.update(supplyLists).set({ extractedText: text }).where(eqOp(supplyLists.id, input.id));
+        }
         return { success: true, content: text };
       } catch(e: any) {
         clearTimeout(timeout);
-        if (e.name === "AbortError") throw new Error("Timeout: document trop volumineux");
-        throw e;
+        throw new Error("Analyse impossible. Téléchargez le fichier directement.");
       }
     }),
 
