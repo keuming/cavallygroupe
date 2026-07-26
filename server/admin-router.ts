@@ -221,7 +221,7 @@ export const adminRouter = router({
       const base64 = result[0].fileData.split(",")[1] || result[0].fileData;
       const prompt = input.mode === "view"
         ? "Extrais et retranscris fidèlement tout le contenu de ce document Word. Garde la structure et les listes."
-        : "Extrais tous les articles de cette liste scolaire avec quantités. Réponds UNIQUEMENT en JSON valide sans texte avant/après: [{"quantite":1,"designation":"article complet"}]";
+        : "Extrais tous les articles de cette liste scolaire avec quantites. Reponds UNIQUEMENT en JSON valide sans texte: [{quantite:1,designation:article complet}]";
       
       const resp = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",

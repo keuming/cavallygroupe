@@ -37298,6 +37298,35 @@ var adminRouter = router({
     }).from(users).orderBy(users.createdAt);
     return result;
   }),
+  analyzeSupplyList: adminProcedure2.input(external_exports.object({ id: external_exports.number(), mode: external_exports.enum(["view", "quote"]) })).mutation(async ({ input }) => {
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+    const { supplyLists: supplyLists2 } = await Promise.resolve().then(() => (init_schema2(), schema_exports));
+    const { eq: eqOp } = await Promise.resolve().then(() => (init_drizzle_orm(), drizzle_orm_exports));
+    const result = await db.select().from(supplyLists2).where(eqOp(supplyLists2.id, input.id)).limit(1);
+    if (!result[0]?.fileData) throw new Error("Fichier non disponible");
+    const base643 = result[0].fileData.split(",")[1] || result[0].fileData;
+    const prompt = input.mode === "view" ? "Extrais et retranscris fid\xE8lement tout le contenu de ce document Word. Garde la structure et les listes." : "Extrais tous les articles de cette liste scolaire avec quantites. Reponds UNIQUEMENT en JSON valide sans texte: [{quantite:1,designation:article complet}]";
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.ANTHROPIC_API_KEY || "",
+        "anthropic-version": "2023-06-01"
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 4e3,
+        messages: [{ role: "user", content: [
+          { type: "document", source: { type: "base64", media_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", data: base643 } },
+          { type: "text", text: prompt }
+        ] }]
+      })
+    });
+    const data = await resp.json();
+    const text2 = data.content?.[0]?.text || "";
+    return { success: true, content: text2 };
+  }),
   // Update Category
   updateCategory: adminProcedure2.input(external_exports.object({
     id: external_exports.number(),
