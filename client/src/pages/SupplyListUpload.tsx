@@ -59,7 +59,7 @@ export default function SupplyListUpload() {
     try {
       await createMutation.mutateAsync({
         fileName: file?.name || "liste-manuelle.txt",
-        fileType: file?.type?.includes("pdf") ? "pdf" : file?.type?.includes("image") ? "image" : "word",
+        fileType: file?.type?.includes("pdf") ? "pdf" : file?.type?.includes("image") ? "image" : file?.type?.includes("word") || file?.type?.includes("document") ? "word" : "document",
         fileData: fileData,
         customerName: form.name,
         customerEmail: form.email || undefined,
