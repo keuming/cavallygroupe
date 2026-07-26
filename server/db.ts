@@ -875,13 +875,17 @@ export async function getAllSupplyLists() {
       fileName: supplyLists.fileName,
       fileUrl: supplyLists.fileUrl,
       fileType: supplyLists.fileType,
+      fileData: supplyLists.fileData,
+      extractedText: supplyLists.extractedText,
       status: supplyLists.status,
+      notes: supplyLists.notes,
+      totalAmount: supplyLists.totalAmount,
+      quotedItems: supplyLists.quotedItems,
       createdAt: supplyLists.createdAt,
       updatedAt: supplyLists.updatedAt,
-      // Join with users to get customer info
-      customerName: users.name,
-      customerEmail: users.email,
-      customerPhone: users.phone,
+      customerName: supplyLists.customerName,
+      customerEmail: supplyLists.customerEmail,
+      customerPhone: supplyLists.customerPhone,
     })
     .from(supplyLists)
     .leftJoin(users, eq(supplyLists.userId, users.id))
