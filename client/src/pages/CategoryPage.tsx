@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { BookOpen, Search, SlidersHorizontal, X, ShoppingCart, Star, Package } from "lucide-react";
+import { BookOpen, Search, SlidersHorizontal, X, ShoppingCart, Upload } from "lucide-react";
+import { Footer } from "@/components/Footer";
+import { PWAInstallBanner } from "@/components/PWAInstallBanner";
 import { addToLocalCart } from "@/hooks/useLocalCart";
 import { AddToCartModal } from "@/components/AddToCartModal";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -47,6 +49,23 @@ export default function CategoryPage({ categoryId }: { categoryId: number }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Bannière Envoyer ma liste */}
+      <div className="bg-gradient-to-r from-[#005f8a] to-[#0080b8] py-3 px-4">
+        <div className="container mx-auto flex items-center justify-between max-w-6xl">
+          <p className="text-white text-sm font-medium hidden sm:block">
+            📋 Vous avez une liste de livres ? Envoyez-la nous — devis sous 24h
+          </p>
+          <p className="text-white text-xs sm:hidden">📋 Envoyez votre liste — devis sous 24h</p>
+          <button
+            onClick={() => navigate("/supply-list-upload")}
+            className="flex items-center gap-2 bg-white text-[#005f8a] px-4 py-1.5 rounded-xl text-sm font-bold hover:bg-blue-50 transition-colors flex-shrink-0 ml-4 animate-pulse-blue"
+          >
+            <Upload className="w-4 h-4" />
+            ENVOYER MA LISTE
+          </button>
+        </div>
+      </div>
+
       {/* Bannière catégorie */}
       <div style={{ background: `linear-gradient(135deg, ${catColor} 0%, ${catColor}dd 100%)` }} className="relative overflow-hidden">
         {/* Pattern décoratif */}
@@ -217,6 +236,8 @@ export default function CategoryPage({ categoryId }: { categoryId: number }) {
           cartCount={cartCount}
         />
       )}
+      <Footer />
+      <PWAInstallBanner />
     </div>
   );
 }
