@@ -90,8 +90,11 @@ export function Footer() {
                 <Phone className="w-4 h-4 text-[#005f8a] mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-sm text-white font-medium">Service Client</p>
-                  <a href="tel:+2250700000000" className="text-sm text-gray-400 hover:text-white transition-colors">
-                    +225 07 00 00 00 00
+                  <a href="tel:+2250173924646" className="text-sm text-gray-400 hover:text-white transition-colors">
+                    +225 01 73 92 46 46
+                  </a>
+                  <a href="tel:+2250501956464" className="text-sm text-gray-400 hover:text-white transition-colors block mt-1">
+                    +225 05 01 95 64 64
                   </a>
                 </div>
               </li>
