@@ -37305,27 +37305,38 @@ var adminRouter = router({
     const { eq: eqOp } = await Promise.resolve().then(() => (init_drizzle_orm(), drizzle_orm_exports));
     const result = await db.select().from(supplyLists2).where(eqOp(supplyLists2.id, input.id)).limit(1);
     if (!result[0]?.fileData) throw new Error("Fichier non disponible");
-    const base643 = result[0].fileData.split(",")[1] || result[0].fileData;
-    const prompt = input.mode === "view" ? "Extrais et retranscris fid\xE8lement tout le contenu de ce document Word. Garde la structure et les listes." : "Extrais tous les articles de cette liste scolaire avec quantites. Reponds UNIQUEMENT en JSON valide sans texte: [{quantite:1,designation:article complet}]";
-    const resp = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY || "",
-        "anthropic-version": "2023-06-01"
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 4e3,
-        messages: [{ role: "user", content: [
-          { type: "document", source: { type: "base64", media_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", data: base643 } },
-          { type: "text", text: prompt }
-        ] }]
-      })
-    });
-    const data = await resp.json();
-    const text2 = data.content?.[0]?.text || "";
-    return { success: true, content: text2 };
+    const rawBase64 = result[0].fileData.split(",")[1] || result[0].fileData;
+    const base643 = rawBase64.length > 7e5 ? rawBase64.substring(0, 7e5) : rawBase64;
+    const prompt = input.mode === "view" ? "Extrais et retranscris le contenu de ce document. Limite ta reponse a 2000 mots maximum." : "Extrais tous les articles de cette liste scolaire avec quantites. Reponds UNIQUEMENT en JSON sans texte: [{quantite:1,designation:article}]";
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 25e3);
+    try {
+      const resp = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": process.env.ANTHROPIC_API_KEY || "",
+          "anthropic-version": "2023-06-01"
+        },
+        body: JSON.stringify({
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 2e3,
+          messages: [{ role: "user", content: [
+            { type: "document", source: { type: "base64", media_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", data: base643 } },
+            { type: "text", text: prompt }
+          ] }]
+        })
+      });
+      clearTimeout(timeout);
+      const data = await resp.json();
+      const text2 = data.content?.[0]?.text || "";
+      return { success: true, content: text2 };
+    } catch (e) {
+      clearTimeout(timeout);
+      if (e.name === "AbortError") throw new Error("Timeout: document trop volumineux");
+      throw e;
+    }
   }),
   // Update Category
   updateCategory: adminProcedure2.input(external_exports.object({
