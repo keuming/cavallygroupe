@@ -16930,14 +16930,16 @@ function getTransporter() {
       }
     };
   }
-  const smtpUser = process.env.SMTP_USER || "";
-  const smtpPass = process.env.SMTP_PASS || "";
-  console.log("[SMTP] user:", smtpUser, "| hasPass:", Boolean(smtpPass), "| passLen:", smtpPass.length);
+  const smtpHost = process.env.MAIL_SERVER || "smtp-relay.brevo.com";
+  const smtpPort = Number(process.env.MAIL_PORT || 587);
+  const smtpUser = process.env.MAIL_USER || "b28877001@smtp-brevo.com";
+  const smtpPass = process.env.MAIL_KEY || "";
+  console.log("[SMTP] host:", smtpHost, "| user:", smtpUser, "| auth:", Boolean(smtpPass));
   return import_nodemailer.default.createTransport({
-    host: process.env.SMTP_HOST || "smtp-relay.brevo.com",
-    port: Number(process.env.SMTP_PORT || 587),
+    host: smtpHost,
+    port: smtpPort,
     secure: false,
-    auth: smtpUser && smtpPass ? { user: smtpUser, pass: smtpPass } : void 0,
+    auth: smtpPass ? { user: smtpUser, pass: smtpPass } : void 0,
     tls: { rejectUnauthorized: false }
   });
 }
