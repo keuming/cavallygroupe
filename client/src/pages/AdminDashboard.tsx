@@ -1,749 +1,649 @@
-import { useAuth } from "@/_core/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { trpc } from "@/lib/trpc";
-import { BarChart3, Package, ShoppingCart, AlertTriangle, Plus, Edit2, Trash2, BookOpen, X, Bell, Calendar, TrendingUp, Settings, QrCode } from "lucide-react";
 import { useState } from "react";
-import { useLocation } from "wouter";
-
+import { trpc } from "@/lib/trpc";
+import { 
+  FileText, Package, Users, BarChart3, Upload, 
+  ChevronDown, LogOut, BookOpen, Bell, RefreshCw,
+  Eye, Table, Send, Receipt, CreditCard, Check,
+  Clock, AlertCircle, XCircle, Phone, Mail,
+  Download, Plus, Trash2, Edit, Search
+} from "lucide-react";
 import { OrderManagementPanel } from "@/components/OrderManagementPanel";
-import { SupplyListsPanel } from "@/components/SupplyListsPanel";
-import { UserManagementPanel } from "@/components/UserManagementPanel";
 
+// ---- Types ----
+interface QuoteItem { designation: string; quantite: number; prixUnitaire: number; }
+
+// ---- Composant principal ----
 export default function AdminDashboard() {
-  const { user, isAuthenticated } = useAuth();
-  const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState("dashboard");
-  const [showAddProductDialog, setShowAddProductDialog] = useState(false);
-  const [orderStatusFilter, setOrderStatusFilter] = useState<string | null>(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [formData, setFormData] = useState({
-    title: "",
-    author: "",
-    category: "",
-    price: "",
-    stock: "",
-    description: "",
-    imageUrl: "",
-  });
+  const [tab, setTab] = useState<"listes" | "commandes" | "produits" | "clients" | "stats">("listes");
+  const [actionMenu, setActionMenu] = useState<number | null>(null);
+  const [modal, setModal] = useState<{type: string; list: any} | null>(null);
+  const [quoteItems, setQuoteItems] = useState<QuoteItem[]>([{designation:"",quantite:1,prixUnitaire:0}]);
+  const [search, setSearch] = useState("");
 
-  // Fetch admin data - MUST be called before any conditional returns
-  const utils = trpc.useUtils();
+  const { data: supplyLists, refetch: refetchLists } = trpc.supplyLists.getAll.useQuery();
   const { data: stats } = trpc.admin.getStats.useQuery();
-  const { data: products } = trpc.admin.listProducts.useQuery({});
-  const { data: orders } = trpc.admin.listOrders.useQuery({});
-  const { data: lowStockProducts } = trpc.admin.getLowStockProducts.useQuery({ threshold: 10 });
-  const { data: categories } = trpc.categories.list.useQuery();
+  const { data: products, refetch: refetchProducts } = trpc.admin.listProducts.useQuery({});
+  const { data: users } = trpc.admin.listUsers.useQuery();
+  const updateStatusMutation = trpc.admin.updateSupplyListStatus.useMutation({ onSuccess: () => refetchLists() });
+  const deleteProductMutation = trpc.admin.deleteProduct.useMutation({ onSuccess: () => refetchProducts() });
 
-  const addProductMutation = trpc.admin.createProduct.useMutation({
-    onSuccess: () => {
-      utils.admin.listProducts.invalidate();
-    },
-  });
-
-  // Allow public access to admin dashboard
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadProgress(10);
-    const CLOUD = "xau4buvq";
-    const PRESET = "xzyaf71u";
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("upload_preset", PRESET);
-      fd.append("folder", "cavally-livres");
-      const xhr = new XMLHttpRequest();
-      xhr.upload.addEventListener("progress", (ev) => {
-        if (ev.lengthComputable) setUploadProgress(Math.round((ev.loaded/ev.total)*90)+5);
-      });
-      xhr.addEventListener("load", () => {
-        const data = JSON.parse(xhr.responseText);
-        if (data.secure_url) {
-          setUploadProgress(100);
-          setFormData((prev) => ({ ...prev, imageUrl: data.secure_url }));
-        } else { setUploadProgress(0); }
-      });
-      xhr.addEventListener("error", () => setUploadProgress(0));
-      xhr.open("POST", `https://api.cloudinary.com/v1_1/${CLOUD}/image/upload`);
-      xhr.send(fd);
-    } catch (err) { setUploadProgress(0); }
+  const statusCfg: Record<string, {label:string; color:string; icon:any}> = {
+    uploaded:   { label:"Nouvelle",      color:"bg-blue-100 text-blue-700",   icon:Clock },
+    processing: { label:"En traitement", color:"bg-yellow-100 text-yellow-700", icon:AlertCircle },
+    quoted:     { label:"Devis envoyé",  color:"bg-purple-100 text-purple-700", icon:Send },
+    invoiced:   { label:"Facturé",       color:"bg-green-100 text-green-700",  icon:Receipt },
+    paid:       { label:"Payé",          color:"bg-emerald-100 text-emerald-700",icon:Check },
+    cancelled:  { label:"Annulé",        color:"bg-red-100 text-red-700",      icon:XCircle },
   };
 
-  const handleAddProduct = async () => {
-    if (!formData.title || !formData.author || !formData.category || !formData.price || !formData.stock) {
-      alert("Veuillez remplir tous les champs requis");
-      return;
+  const totalDevis = quoteItems.reduce((s,i) => s + i.quantite * i.prixUnitaire, 0);
+
+  const exportCSV = (list: any) => {
+    const rows = [
+      ["CAVALLY LIVRES - DEVIS"],
+      ["Client:", list.customerName || ""],
+      ["Tel:", list.customerPhone || ""],
+      ["Email:", list.customerEmail || ""],
+      ["Date:", new Date().toLocaleDateString("fr-FR")],
+      [""],
+      ["N", "Designation", "Qte", "Prix unitaire FCFA", "Total FCFA"],
+      ...quoteItems.map((item,i) => [i+1, item.designation, item.quantite, item.prixUnitaire, item.quantite*item.prixUnitaire]),
+      [""],
+      ["","","","TOTAL:", totalDevis],
+      ["","","","Livraison:", "Gratuite Abidjan"],
+    ];
+    const csv = rows.map(r=>r.join(";")).join("\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["\uFEFF"+csv], {type:"text/csv;charset=utf-8"}));
+    a.download = "Devis_" + (list.customerName||"client") + ".csv";
+    a.click();
+  };
+
+  const downloadFile = (list: any) => {
+    if (!list.fileData) return alert("Fichier non disponible");
+    const a = document.createElement("a");
+    a.href = list.fileData;
+    a.download = list.fileName;
+    a.click();
+  };
+
+  const openModal = (type: string, list: any) => {
+    setActionMenu(null);
+    if (list.quotedItems) {
+      try { setQuoteItems(JSON.parse(list.quotedItems)); } catch { setQuoteItems([{designation:"",quantite:1,prixUnitaire:0}]); }
+    } else {
+      setQuoteItems([{designation:"",quantite:1,prixUnitaire:0}]);
     }
-
-    try {
-      await addProductMutation.mutateAsync({
-        title: formData.title,
-        author: formData.author,
-        categoryId: parseInt(formData.category) || 1,
-        price: formData.price,
-        stock: parseInt(formData.stock),
-        description: formData.description,
-        coverImageUrl: formData.imageUrl,
-      });
-
-      // Reset form and close dialog
-      setFormData({
-        title: "",
-        author: "",
-        category: "",
-        price: "",
-        stock: "",
-        description: "",
-        imageUrl: "",
-      });
-      setShowAddProductDialog(false);
-    } catch (error) {
-      console.error("Error adding product:", error);
-      alert("Erreur lors de l'ajout du produit: " + (error instanceof Error ? error.message : "Erreur inconnue"));
-    }
+    setModal({ type, list });
   };
 
-  // Filter orders by status (not used but kept for potential future use)
-  // const filteredOrders = orderStatusFilter
-  //   ? orders?.filter(order => order.status === orderStatusFilter)
-  //   : orders;
-
-  // Count orders by status
-  const orderStats = {
-    new: orders?.filter(o => o.status === "pending").length || 0,
-    validated: orders?.filter(o => o.status === "confirmed").length || 0,
-    rejected: orders?.filter(o => o.status === "cancelled").length || 0,
-    unprocessed: orders?.filter(o => o.status === "pending").length || 0,
-    processing: orders?.filter(o => o.status === "in_transit").length || 0,
-    delivered: orders?.filter(o => o.status === "delivered").length || 0,
-    paid: orders?.filter(o => o.paymentStatus === "completed").length || 0,
-    unpaid: orders?.filter(o => o.paymentStatus === "pending").length || 0,
+  const saveAndUpdateStatus = async (status: string) => {
+    if (!modal) return;
+    await updateStatusMutation.mutateAsync({
+      id: modal.list.id,
+      status,
+      totalAmount: totalDevis.toString(),
+      quotedItems: JSON.stringify(quoteItems),
+    });
+    setModal(null);
   };
+
+  const filteredLists = supplyLists?.filter((l: any) => 
+    !search || l.customerName?.toLowerCase().includes(search.toLowerCase()) || l.customerPhone?.includes(search) || l.customerEmail?.toLowerCase().includes(search.toLowerCase())
+  ) || [];
+
+  const navTabs = [
+    { id: "listes",    label: "Listes",     icon: Upload,   badge: supplyLists?.filter((l:any)=>l.status==="uploaded").length },
+    { id: "commandes", label: "Commandes",  icon: Package,  badge: null },
+    { id: "produits",  label: "Produits",   icon: BookOpen, badge: null },
+    { id: "clients",   label: "Clients",    icon: Users,    badge: null },
+    { id: "stats",     label: "Stats",      icon: BarChart3,badge: null },
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => navigate("/")}>
-            <div className="w-10 h-10 bg-gradient-to-br from-[#005f8a] to-[#004a6a] rounded-lg flex items-center justify-center shadow-md">
-              <BookOpen className="w-6 h-6 text-white" />
+      <header className="bg-white border-b shadow-sm sticky top-0 z-40">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-[#005f8a] rounded-xl flex items-center justify-center">
+              <BookOpen className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-[#005f8a]">Cavally Livres</h1>
-              <p className="text-xs text-gray-600">Administration</p>
+              <p className="font-bold text-[#005f8a] text-sm">Cavally Livres</p>
+              <p className="text-xs text-gray-400">Dashboard Admin</p>
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-sm font-medium text-gray-900">{user?.name}</p>
-            <p className="text-xs text-gray-600">Administrateur</p>
+          <div className="flex items-center gap-3">
+            <button onClick={() => { refetchLists(); }} className="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="Actualiser">
+              <RefreshCw className="w-4 h-4 text-gray-500" />
+            </button>
+            <button
+              onClick={() => { localStorage.removeItem("cavally_token"); window.location.href = "/login"; }}
+              className="flex items-center gap-1 text-sm text-gray-500 hover:text-red-500 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
-      </div>
 
-      {/* Main Content with Sidebar */}
-      <div className="flex">
-        {/* Sidebar */}
-        <aside className="w-64 bg-white border-r border-gray-200 shadow-sm min-h-[calc(100vh-80px)] p-6 overflow-y-auto">
-          <div className="space-y-8">
-            {/* Commandes Section */}
-            <div>
-              <h3 className="font-bold text-lg text-[#005f8a] mb-4 flex items-center gap-2">
-                <Bell className="w-5 h-5" />
-                Commandes
-              </h3>
-              <div className="space-y-2">
-                <button
-                  onClick={() => { setOrderStatusFilter("pending"); setActiveTab("orders"); }}
-                  className={`w-full text-left px-4 py-2 rounded-lg transition-all ${
-                    orderStatusFilter === "pending"
-                      ? "bg-[#005f8a] text-white"
-                      : "hover:bg-gray-100 text-gray-700"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>Nouvelles Commandes</span>
-                    <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">{orderStats.new}</span>
-                  </div>
-                </button>
-                <button
-                  onClick={() => { setOrderStatusFilter("confirmed"); setActiveTab("orders"); }}
-                  className={`w-full text-left px-4 py-2 rounded-lg transition-all ${
-                    orderStatusFilter === "confirmed"
-                      ? "bg-[#005f8a] text-white"
-                      : "hover:bg-gray-100 text-gray-700"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>Commandes Validées</span>
-                    <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">{orderStats.validated}</span>
-                  </div>
-                </button>
-                <button
-                  onClick={() => { setOrderStatusFilter("cancelled"); setActiveTab("orders"); }}
-                  className={`w-full text-left px-4 py-2 rounded-lg transition-all ${
-                    orderStatusFilter === "cancelled"
-                      ? "bg-[#005f8a] text-white"
-                      : "hover:bg-gray-100 text-gray-700"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>Commandes Rejetées</span>
-                    <span className="bg-red-600 text-white text-xs px-2 py-1 rounded-full">{orderStats.rejected}</span>
-                  </div>
-                </button>
-                <button
-                  onClick={() => { setOrderStatusFilter("in_transit"); setActiveTab("orders"); }}
-                  className={`w-full text-left px-4 py-2 rounded-lg transition-all ${
-                    orderStatusFilter === "in_transit"
-                      ? "bg-[#005f8a] text-white"
-                      : "hover:bg-gray-100 text-gray-700"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>En Cours de Livraison</span>
-                    <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">{orderStats.processing}</span>
-                  </div>
-                </button>
-                <button
-                  onClick={() => { setOrderStatusFilter("delivered"); setActiveTab("orders"); }}
-                  className={`w-full text-left px-4 py-2 rounded-lg transition-all ${
-                    orderStatusFilter === "delivered"
-                      ? "bg-[#005f8a] text-white"
-                      : "hover:bg-gray-100 text-gray-700"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span>Commandes Livrées</span>
-                    <span className="bg-green-600 text-white text-xs px-2 py-1 rounded-full">{orderStats.delivered}</span>
-                  </div>
-                </button>
-              </div>
+        {/* Tabs navigation */}
+        <div className="container mx-auto px-4">
+          <div className="flex gap-1 overflow-x-auto scrollbar-hide pb-1">
+            {navTabs.map(t => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id as any)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg text-sm font-medium whitespace-nowrap transition-colors relative flex-shrink-0 ${
+                  tab === t.id ? "bg-[#005f8a] text-white" : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                <t.icon className="w-4 h-4" />
+                {t.label}
+                {t.badge ? (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                    {t.badge}
+                  </span>
+                ) : null}
+              </button>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      <div className="container mx-auto px-4 py-6 max-w-7xl">
+
+        {/* ===== ONGLET LISTES ===== */}
+        {tab === "listes" && (
+          <div>
+            {/* Stats rapides */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+              {[
+                { label:"Nouvelles",    count: supplyLists?.filter((l:any)=>l.status==="uploaded").length||0,   color:"text-blue-600",   bg:"bg-blue-50" },
+                { label:"En traitement",count: supplyLists?.filter((l:any)=>l.status==="processing").length||0, color:"text-yellow-600", bg:"bg-yellow-50" },
+                { label:"Devis envoyés",count: supplyLists?.filter((l:any)=>l.status==="quoted").length||0,     color:"text-purple-600", bg:"bg-purple-50" },
+                { label:"Total",        count: supplyLists?.length||0,                                           color:"text-gray-600",   bg:"bg-gray-100" },
+              ].map(s => (
+                <div key={s.label} className={`${s.bg} rounded-xl p-4`}>
+                  <p className={`text-2xl font-bold ${s.color}`}>{s.count}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
+                </div>
+              ))}
             </div>
 
-            {/* Paiements Section */}
-            <div>
-              <h3 className="font-bold text-lg text-[#005f8a] mb-4 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5" />
-                Paiements
-              </h3>
-              <div className="space-y-2">
-                <button
-                  onClick={() => { setOrderStatusFilter(null); setActiveTab("dashboard"); }}
-                  className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-700 transition-all"
-                >
-                  <div className="flex items-center justify-between">
-                    <span>Commandes Payées</span>
-                    <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">{orderStats.paid}</span>
-                  </div>
-                </button>
-                <button
-                  onClick={() => { setOrderStatusFilter(null); setActiveTab("dashboard"); }}
-                  className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-700 transition-all"
-                >
-                  <div className="flex items-center justify-between">
-                    <span>Commandes Non Payées</span>
-                    <span className="bg-orange-500 text-white text-xs px-2 py-1 rounded-full">{orderStats.unpaid}</span>
-                  </div>
-                </button>
+            {/* Barre recherche */}
+            <div className="bg-white rounded-xl border shadow-sm mb-4">
+              <div className="p-4 border-b flex items-center gap-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                  <input value={search} onChange={e=>setSearch(e.target.value)}
+                    placeholder="Rechercher par nom, téléphone, email..."
+                    className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#005f8a]"
+                  />
+                </div>
+                <span className="text-sm text-gray-500">{filteredLists.length} liste{filteredLists.length!==1?"s":""}</span>
               </div>
-            </div>
 
-            {/* Gestion Produits Section */}
-            <div>
-              <h3 className="font-bold text-lg text-[#005f8a] mb-4 flex items-center gap-2">
-                <Package className="w-5 h-5" />
-                Gestion Produits
-              </h3>
-              <div className="space-y-2">
-                <button
-                  onClick={() => { setActiveTab("products"); }}
-                  className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-700 transition-all"
-                >
-                  Tous les Produits
-                </button>
-                <button
-                  onClick={() => { setShowAddProductDialog(true); setActiveTab("products"); }}
-                  className="w-full text-left px-4 py-2 rounded-lg bg-[#005f8a] text-white transition-all hover:bg-[#004a6a]"
-                >
-                  <Plus className="w-4 h-4 inline mr-2" />
-                  Nouvel Ajout
-                </button>
-                <button
-                  onClick={() => { setActiveTab("products"); }}
-                  className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-700 transition-all"
-                >
-                  Modifier
-                </button>
-                <button
-                  onClick={() => { setActiveTab("products"); }}
-                  className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-700 transition-all"
-                >
-                  Supprimer
-                </button>
-                <button
-                  onClick={() => { setActiveTab("products"); }}
-                  className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-700 transition-all"
-                >
-                  Mettre à Jour
-                </button>
-              </div>
-            </div>
+              {/* Table des listes */}
+              {filteredLists.length === 0 ? (
+                <div className="text-center py-16">
+                  <Upload className="w-16 h-16 text-gray-200 mx-auto mb-3" />
+                  <p className="text-gray-400">Aucune liste reçue</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+                      <tr>
+                        <th className="text-left p-3">Client</th>
+                        <th className="text-left p-3 hidden sm:table-cell">Fichier</th>
+                        <th className="text-left p-3 hidden md:table-cell">Date</th>
+                        <th className="text-left p-3">Statut</th>
+                        <th className="text-left p-3 hidden lg:table-cell">Montant</th>
+                        <th className="text-right p-3">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {filteredLists.map((list: any) => {
+                        const cfg = statusCfg[list.status] || statusCfg.uploaded;
+                        const Icon = cfg.icon;
+                        return (
+                          <tr key={list.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="p-3">
+                              <p className="font-semibold text-gray-900 text-sm">{list.customerName || "Anonyme"}</p>
+                              <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                                <Phone className="w-3 h-3" />{list.customerPhone || "N/A"}
+                              </p>
+                              {list.customerEmail && (
+                                <p className="text-xs text-gray-400 flex items-center gap-1">
+                                  <Mail className="w-3 h-3" />{list.customerEmail}
+                                </p>
+                              )}
+                            </td>
+                            <td className="p-3 hidden sm:table-cell">
+                              <div className="flex items-center gap-2">
+                                <span className="text-lg">{list.fileType==="pdf"?"📄":list.fileType==="image"?"🖼️":"📝"}</span>
+                                <span className="text-xs text-gray-500 truncate max-w-[120px]">{list.fileName}</span>
+                              </div>
+                              {list.notes && <p className="text-xs text-gray-400 italic mt-0.5 truncate max-w-[150px]">"{list.notes}"</p>}
+                            </td>
+                            <td className="p-3 hidden md:table-cell">
+                              <p className="text-sm text-gray-600">{new Date(list.createdAt).toLocaleDateString("fr-FR")}</p>
+                              <p className="text-xs text-gray-400">{new Date(list.createdAt).toLocaleTimeString("fr-FR", {hour:"2-digit",minute:"2-digit"})}</p>
+                            </td>
+                            <td className="p-3">
+                              <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium ${cfg.color}`}>
+                                <Icon className="w-3 h-3" />
+                                {cfg.label}
+                              </span>
+                            </td>
+                            <td className="p-3 hidden lg:table-cell">
+                              {list.totalAmount ? (
+                                <span className="font-bold text-[#005f8a] text-sm">{Number(list.totalAmount).toLocaleString()} FCFA</span>
+                              ) : (
+                                <span className="text-gray-400 text-xs">—</span>
+                              )}
+                            </td>
+                            <td className="p-3 text-right relative">
+                              <button
+                                onClick={() => setActionMenu(actionMenu===list.id ? null : list.id)}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#005f8a] text-white rounded-lg text-sm font-medium hover:bg-[#004a6b] transition-colors"
+                              >
+                                Actions <ChevronDown className="w-3 h-3" />
+                              </button>
 
-            {/* Clients Section */}
-            <div>
-              <h3 className="font-bold text-lg text-[#005f8a] mb-4 flex items-center gap-2">
-                <BookOpen className="w-5 h-5" />
-                Clients
-              </h3>
-              <div className="space-y-2">
-                <button
-                  onClick={() => setActiveTab("users")}
-                  className={`w-full text-left px-4 py-2 rounded-lg transition-all ${
-                    activeTab === "users"
-                      ? "bg-[#005f8a] text-white"
-                      : "hover:bg-gray-100 text-gray-700"
-                  }`}
-                >
-                  🧑‍🤝‍🧑 Liste des Clients
-                </button>
-                <button
-                  onClick={() => setActiveTab("users")}
-                  className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-700 transition-all"
-                >
-                  📊 Monitoring
-                </button>
-              </div>
+                              {actionMenu === list.id && (
+                                <div className="absolute right-3 top-12 bg-white rounded-xl shadow-xl border border-gray-100 py-1 w-52 z-50">
+                                  <button onClick={() => openModal("view", list)} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                                    <Eye className="w-4 h-4 text-blue-500" /> Afficher la liste
+                                  </button>
+                                  {list.fileData && (
+                                    <button onClick={() => { downloadFile(list); setActionMenu(null); }} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                                      <Download className="w-4 h-4 text-gray-500" /> Télécharger fichier
+                                    </button>
+                                  )}
+                                  <button onClick={() => openModal("quote", list)} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                                    <Table className="w-4 h-4 text-green-500" /> Convertir en Excel
+                                  </button>
+                                  <div className="border-t border-gray-100 my-1" />
+                                  <button onClick={() => openModal("send-quote", list)} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                                    <Send className="w-4 h-4 text-purple-500" /> Envoyer devis
+                                  </button>
+                                  <button onClick={() => openModal("invoice", list)} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                                    <Receipt className="w-4 h-4 text-orange-500" /> Envoyer facture
+                                  </button>
+                                  <button onClick={() => openModal("payment-link", list)} className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
+                                    <CreditCard className="w-4 h-4 text-[#005f8a]" /> Lien paiement Mobile
+                                  </button>
+                                  <div className="border-t border-gray-100 my-1" />
+                                  <button
+                                    onClick={() => { updateStatusMutation.mutate({id:list.id,status:"processing"}); setActionMenu(null); }}
+                                    className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-yellow-600 hover:bg-yellow-50"
+                                  >
+                                    <AlertCircle className="w-4 h-4" /> Marquer en traitement
+                                  </button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
+          </div>
+        )}
 
-            {/* Outils Marketing */}
-            <div>
-              <h3 className="font-bold text-lg text-[#005f8a] mb-4 flex items-center gap-2">
-                <QrCode className="w-5 h-5" />
-                Marketing
-              </h3>
-              <div className="space-y-2">
-                <button
-                  onClick={() => navigate("/admin/products")}
-                  className="w-full text-left px-4 py-2 rounded-lg bg-gradient-to-r from-[#005f8a] to-[#ff8c42] text-white transition-all hover:shadow-md"
-                >
-                  <Package className="w-4 h-4 inline mr-2" />
-                  Gestion des Articles
-                </button>
-                <button
-                  onClick={() => navigate("/admin/qrcode")}
-                  className="w-full text-left px-4 py-2 rounded-lg bg-gradient-to-r from-[#005f8a] to-[#ff8c42] text-white transition-all hover:shadow-md"
-                >
-                  <QrCode className="w-4 h-4 inline mr-2" />
-                  Générateur QR Code
-                </button>
-              </div>
+        {/* ===== ONGLET COMMANDES ===== */}
+        {tab === "commandes" && (
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Commandes directes</h2>
+            <OrderManagementPanel />
+          </div>
+        )}
+
+        {/* ===== ONGLET PRODUITS ===== */}
+        {tab === "produits" && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Catalogue ({products?.length || 0} produits)</h2>
+              <button
+                onClick={() => setModal({type:"add-product", list: null})}
+                className="flex items-center gap-2 px-4 py-2 bg-[#005f8a] text-white rounded-xl text-sm font-medium hover:bg-[#004a6b]"
+              >
+                <Plus className="w-4 h-4" /> Ajouter
+              </button>
             </div>
+            <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                  <tr>
+                    <th className="text-left p-3">Produit</th>
+                    <th className="text-left p-3 hidden sm:table-cell">Catégorie</th>
+                    <th className="text-left p-3">Prix</th>
+                    <th className="text-left p-3">Stock</th>
+                    <th className="text-right p-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {products?.map((p: any) => (
+                    <tr key={p.id} className="hover:bg-gray-50">
+                      <td className="p-3">
+                        <div className="flex items-center gap-3">
+                          {p.coverImageUrl ? (
+                            <img src={p.coverImageUrl} alt={p.title} className="w-10 h-12 object-cover rounded-lg flex-shrink-0" />
+                          ) : (
+                            <div className="w-10 h-12 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <BookOpen className="w-5 h-5 text-gray-400" />
+                            </div>
+                          )}
+                          <div>
+                            <p className="font-medium text-sm text-gray-900 line-clamp-1">{p.title}</p>
+                            <p className="text-xs text-gray-500">{p.author}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-3 hidden sm:table-cell">
+                        <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{p.categoryId}</span>
+                      </td>
+                      <td className="p-3 font-bold text-[#005f8a] text-sm">{Number(p.price).toLocaleString()} F</td>
+                      <td className="p-3">
+                        <span className={`text-xs font-medium ${p.stock > 5 ? "text-green-600" : p.stock > 0 ? "text-orange-500" : "text-red-500"}`}>
+                          {p.stock > 0 ? p.stock : "Rupture"}
+                        </span>
+                      </td>
+                      <td className="p-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button onClick={() => setModal({type:"edit-product", list: p})} className="p-1.5 hover:bg-blue-50 rounded-lg text-blue-500">
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => { if(confirm("Supprimer ce produit ?")) deleteProductMutation.mutate({id:p.id}); }} className="p-1.5 hover:bg-red-50 rounded-lg text-red-500">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
-            {/* Autres Sections */}
-            <div>
-              <h3 className="font-bold text-lg text-[#005f8a] mb-4 flex items-center gap-2">
-                <Settings className="w-5 h-5" />
-                Autres
-              </h3>
-              <div className="space-y-2">
-                <button
-                  onClick={() => { setActiveTab("reports"); }}
-                  className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-700 transition-all"
-                >
-                  Statistiques
-                </button>
-                <button
-                  onClick={() => { setActiveTab("reports"); }}
-                  className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100 text-gray-700 transition-all"
-                >
-                  Rapports
-                </button>
+        {/* ===== ONGLET CLIENTS ===== */}
+        {tab === "clients" && (
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Clients ({users?.length || 0})</h2>
+            <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+                  <tr>
+                    <th className="text-left p-3">Client</th>
+                    <th className="text-left p-3 hidden sm:table-cell">Email</th>
+                    <th className="text-left p-3 hidden md:table-cell">Téléphone</th>
+                    <th className="text-left p-3">Rôle</th>
+                    <th className="text-left p-3 hidden lg:table-cell">Inscrit le</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {users?.map((u: any) => (
+                    <tr key={u.id} className="hover:bg-gray-50">
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 bg-[#005f8a] rounded-full flex items-center justify-center text-white text-xs font-bold">
+                            {u.name?.[0]?.toUpperCase() || "?"}
+                          </div>
+                          <span className="font-medium text-sm text-gray-900">{u.name}</span>
+                        </div>
+                      </td>
+                      <td className="p-3 hidden sm:table-cell text-sm text-gray-600">{u.email}</td>
+                      <td className="p-3 hidden md:table-cell text-sm text-gray-600">{u.phone || "—"}</td>
+                      <td className="p-3">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${u.role==="admin" ? "bg-red-100 text-red-600" : "bg-gray-100 text-gray-600"}`}>
+                          {u.role}
+                        </span>
+                      </td>
+                      <td className="p-3 hidden lg:table-cell text-xs text-gray-400">
+                        {new Date(u.createdAt).toLocaleDateString("fr-FR")}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ===== ONGLET STATS ===== */}
+        {tab === "stats" && (
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Statistiques</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+              {[
+                { label:"Produits", value: stats?.totalProducts || 0, icon:"📚" },
+                { label:"Commandes", value: stats?.totalOrders || 0, icon:"📦" },
+                { label:"Clients", value: stats?.totalUsers || 0, icon:"👥" },
+                { label:"Revenus", value: `${(stats?.totalRevenue||0).toLocaleString()} F`, icon:"💰" },
+              ].map(s => (
+                <div key={s.label} className="bg-white rounded-xl border p-5 shadow-sm">
+                  <div className="text-3xl mb-2">{s.icon}</div>
+                  <p className="text-2xl font-bold text-gray-900">{s.value}</p>
+                  <p className="text-sm text-gray-500 mt-0.5">{s.label}</p>
+                </div>
+              ))}
+            </div>
+            <div className="bg-white rounded-xl border p-6 shadow-sm">
+              <h3 className="font-bold text-gray-700 mb-3">Contact service client</h3>
+              <div className="space-y-2 text-sm">
+                <p>📞 <a href="tel:+2250173924646" className="text-[#005f8a]">+225 01 73 92 46 46</a></p>
+                <p>📞 <a href="tel:+2250501956464" className="text-[#005f8a]">+225 05 01 95 64 64</a></p>
+                <p>📧 <a href="mailto:service.client@cavally-livres.com" className="text-[#005f8a]">service.client@cavally-livres.com</a></p>
               </div>
             </div>
           </div>
-        </aside>
+        )}
+      </div>
 
-        {/* Main Content */}
-        <div className="flex-1 px-8 py-8">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-5 mb-8 bg-white border border-gray-200">
-              <TabsTrigger value="dashboard" className="data-[state=active]:bg-blue-50 data-[state=active]:text-[#005f8a]">Dashboard</TabsTrigger>
-              <TabsTrigger value="products" className="data-[state=active]:bg-blue-50 data-[state=active]:text-[#005f8a]">Produits</TabsTrigger>
-              <TabsTrigger value="orders" className="data-[state=active]:bg-blue-50 data-[state=active]:text-[#005f8a]">Commandes</TabsTrigger>
-              <TabsTrigger value="supplyLists" className="data-[state=active]:bg-blue-50 data-[state=active]:text-[#005f8a]">Devis</TabsTrigger>
-              <TabsTrigger value="users" className="data-[state=active]:bg-blue-50 data-[state=active]:text-[#005f8a]">Utilisateurs</TabsTrigger>
-              <TabsTrigger value="reports" className="data-[state=active]:bg-blue-50 data-[state=active]:text-[#005f8a]">Rapports</TabsTrigger>
-            </TabsList>
+      {/* Fermer menu action au clic extérieur */}
+      {actionMenu && <div className="fixed inset-0 z-40" onClick={() => setActionMenu(null)} />}
 
-            {/* Dashboard Tab */}
-            <TabsContent value="dashboard" className="space-y-6">
-              {/* Statistics Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card className="p-6 hover:shadow-lg transition-shadow border-l-4 border-l-blue-600">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600 font-medium">Total Produits</p>
-                      <p className="text-3xl font-bold text-gray-900 mt-2">{stats?.totalProducts || 0}</p>
-                    </div>
-                    <div className="p-3 bg-blue-100 rounded-lg">
-                      <Package className="w-6 h-6 text-[#005f8a]" />
-                    </div>
-                  </div>
-                </Card>
-
-                <Card className="p-6 hover:shadow-lg transition-shadow border-l-4 border-l-blue-600">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600 font-medium">Total Commandes</p>
-                      <p className="text-3xl font-bold text-gray-900 mt-2">{stats?.totalOrders || 0}</p>
-                    </div>
-                    <div className="p-3 bg-blue-100 rounded-lg">
-                      <ShoppingCart className="w-6 h-6 text-[#005f8a]" />
-                    </div>
-                  </div>
-                </Card>
-
-                <Card className="p-6 hover:shadow-lg transition-shadow border-l-4 border-l-green-600">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600 font-medium">Revenu Total</p>
-                      <p className="text-3xl font-bold text-gray-900 mt-2">{(stats?.totalRevenue || 0).toLocaleString()} FCFA</p>
-                    </div>
-                    <div className="p-3 bg-green-100 rounded-lg">
-                      <BarChart3 className="w-6 h-6 text-green-600" />
-                    </div>
-                  </div>
-                </Card>
-
-                <Card className="p-6 hover:shadow-lg transition-shadow border-l-4 border-l-red-600">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600 font-medium">Stock Faible</p>
-                      <p className="text-3xl font-bold text-gray-900 mt-2">{stats?.lowStockProducts || 0}</p>
-                    </div>
-                    <div className="p-3 bg-red-100 rounded-lg">
-                      <AlertTriangle className="w-6 h-6 text-red-600" />
-                    </div>
-                  </div>
-                </Card>
-              </div>
-
-              {/* Recent Orders */}
-              <Card className="p-6 shadow-sm">
-                <h2 className="text-xl font-bold mb-4 text-gray-900">Commandes Récentes</h2>
-                <div className="space-y-2">
-                  {stats?.recentOrders && stats.recentOrders.length > 0 ? (
-                    stats.recentOrders.slice(0, 5).map((order) => (
-                      <div key={order.id} className="flex items-center justify-between p-3 bg-gray-50 rounded border border-gray-200 hover:bg-[#f0f7fb] transition-colors">
-                        <div>
-                          <p className="font-medium text-gray-900">{order.orderNumber}</p>
-                          <p className="text-sm text-gray-600">{order.customerName}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium text-gray-900">{parseFloat(order.totalAmount).toLocaleString()} FCFA</p>
-                          <p className="text-sm text-[#005f8a] font-medium capitalize">{order.status}</p>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-center text-gray-600 py-4">Aucune commande récente</p>
-                  )}
+      {/* ===== MODALS ===== */}
+      {modal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            
+            {/* Modal: Voir la liste */}
+            {modal.type === "view" && (
+              <div>
+                <div className="p-5 border-b bg-blue-50">
+                  <h3 className="font-bold text-[#005f8a] text-lg">Détails de la liste</h3>
+                  <p className="text-sm text-gray-500">#{modal.list.id} — {modal.list.fileName}</p>
                 </div>
-              </Card>
-
-              {/* Low Stock Alert */}
-              {lowStockProducts && lowStockProducts.length > 0 && (
-                <Card className="p-6 border-l-4 border-l-red-600 bg-red-50">
-                  <div className="flex items-center gap-2 mb-4">
-                    <AlertTriangle className="w-5 h-5 text-red-600" />
-                    <h2 className="text-xl font-bold text-red-900">Alerte Stock Faible</h2>
-                  </div>
-                  <div className="space-y-2">
-                    {lowStockProducts.map((product) => (
-                      <div key={product.id} className="flex items-center justify-between p-3 bg-white rounded border border-red-200">
-                        <div>
-                          <p className="font-medium text-gray-900">{product.title}</p>
-                          <p className="text-sm text-gray-600">Stock: {product.stock}</p>
-                        </div>
-                        <Button size="sm" className="bg-[#005f8a] hover:bg-[#004a6a]">Réapprovisionner</Button>
+                <div className="p-5 space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      ["Client", modal.list.customerName],
+                      ["Téléphone", modal.list.customerPhone],
+                      ["Email", modal.list.customerEmail],
+                      ["Statut", statusCfg[modal.list.status]?.label],
+                      ["Type fichier", modal.list.fileType],
+                      ["Reçu le", new Date(modal.list.createdAt).toLocaleString("fr-FR")],
+                    ].map(([k,v]) => v && (
+                      <div key={k} className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs text-gray-400 uppercase">{k}</p>
+                        <p className="font-medium text-gray-900 text-sm mt-0.5">{v}</p>
                       </div>
                     ))}
                   </div>
-                </Card>
-              )}
-            </TabsContent>
-
-            {/* Products Tab */}
-            <TabsContent value="products" className="space-y-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Gestion des Produits</h2>
-                <Button 
-                  onClick={() => setShowAddProductDialog(true)}
-                  className="bg-[#005f8a] hover:bg-[#004a6a] text-white shadow-md hover:shadow-lg transition-all"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Ajouter un produit
-                </Button>
-              </div>
-
-              <div className="space-y-2">
-                {products && products.length > 0 ? (
-                  products.map((product) => (
-                    <Card key={product.id} className="p-4 hover:shadow-md transition-shadow border-l-4 border-l-blue-200">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-900">{product.title}</p>
-                          <p className="text-sm text-gray-600">{product.author}</p>
-                          <p className="text-sm font-semibold text-[#005f8a] mt-1">{parseFloat(product.price).toLocaleString()} FCFA</p>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <div className="text-right">
-                            <p className="text-sm text-gray-600">Stock</p>
-                            <p className="text-lg font-bold text-gray-900">{product.stock}</p>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button size="sm" variant="outline" className="hover:bg-[#f0f7fb]">
-                              <Edit2 className="w-4 h-4 text-[#005f8a]" />
-                            </Button>
-                            <Button size="sm" variant="outline" className="text-red-600 hover:bg-red-50">
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  ))
-                ) : (
-                  <Card className="p-8 text-center">
-                    <Package className="w-12 h-12 text-gray-400 mx-auto mb-4 opacity-50" />
-                    <p className="text-gray-600">Aucun produit trouvé</p>
-                  </Card>
-                )}
-              </div>
-            </TabsContent>
-
-            {/* Orders Tab */}
-            <TabsContent value="orders" className="space-y-6">
-              <OrderManagementPanel statusFilter={orderStatusFilter} />
-            </TabsContent>
-
-            {/* Supply Lists Tab */}
-            <TabsContent value="supplyLists" className="space-y-6">
-              <SupplyListsPanel />
-            </TabsContent>
-
-            {/* Users Tab */}
-            <TabsContent value="users" className="space-y-6">
-              <UserManagementPanel />
-            </TabsContent>
-
-            {/* Reports Tab */}
-            <TabsContent value="reports" className="space-y-6">
-              <h2 className="text-2xl font-bold text-gray-900">Rapports et Statistiques</h2>
-
-              <Card className="p-6 shadow-sm">
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200">
-                    <p className="text-sm text-[#005f8a] font-medium">Revenu Total</p>
-                    <p className="text-3xl font-bold text-blue-900 mt-2">{(stats?.totalRevenue || 0).toLocaleString()} FCFA</p>
-                  </div>
-                  <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200">
-                    <p className="text-sm text-[#005f8a] font-medium">Nombre de Commandes</p>
-                    <p className="text-3xl font-bold text-blue-900 mt-2">{stats?.totalOrders || 0}</p>
-                  </div>
-                  <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border border-green-200">
-                    <p className="text-sm text-green-600 font-medium">Panier Moyen</p>
-                    <p className="text-3xl font-bold text-green-900 mt-2">
-                      {stats?.totalOrders ? ((stats.totalRevenue || 0) / stats.totalOrders).toLocaleString() : 0} FCFA
-                    </p>
-                  </div>
-                  <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg border border-purple-200">
-                    <p className="text-sm text-purple-600 font-medium">Produits en Stock</p>
-                    <p className="text-3xl font-bold text-purple-900 mt-2">{stats?.totalProducts || 0}</p>
-                  </div>
-                </div>
-              </Card>
-
-              <Card className="p-6 shadow-sm">
-                <h3 className="text-lg font-bold mb-4 text-gray-900">Exporter les données</h3>
-                <div className="flex gap-4">
-                  <Button variant="outline" className="border-blue-200 hover:bg-[#f0f7fb]">Exporter en CSV</Button>
-                  <Button variant="outline" className="border-blue-200 hover:bg-[#f0f7fb]">Exporter en PDF</Button>
-                </div>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </div>
-      </div>
-
-      {/* Add Product Dialog */}
-      <Dialog open={showAddProductDialog} onOpenChange={setShowAddProductDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-[#005f8a]">Ajouter un nouveau produit</DialogTitle>
-            <DialogDescription>
-              Remplissez le formulaire pour ajouter un produit au catalogue
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-gray-900">Titre *</label>
-              <Input
-                placeholder="Ex: Mathématiques 6ème"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="mt-1 border-gray-200"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-gray-900">Auteur *</label>
-              <Input
-                placeholder="Ex: Jean Dupont"
-                value={formData.author}
-                onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-                className="mt-1 border-gray-200"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-gray-900">Catégorie *</label>
-              <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                <SelectTrigger className="mt-1 border-gray-200">
-                  <SelectValue placeholder="Sélectionner une catégorie" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories?.map((cat: any) => (
-                    <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium text-gray-900">Prix (FCFA) *</label>
-                <Input
-                  type="number"
-                  placeholder="0"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                  className="mt-1 border-gray-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-900">Stock *</label>
-                <Input
-                  type="number"
-                  placeholder="0"
-                  value={formData.stock}
-                  onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                  className="mt-1 border-gray-200"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-gray-900">Description</label>
-              <Input
-                placeholder="Description du produit"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="mt-1 border-gray-200"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-gray-900">Image du produit</label>
-
-              {/* Preview si image chargée */}
-              {formData.imageUrl ? (
-                <div className="mt-2 space-y-2">
-                  <div className="relative inline-block">
-                    <img
-                      src={formData.imageUrl}
-                      alt="Aperçu"
-                      className="h-40 w-32 object-cover rounded-lg border border-gray-200 shadow-sm"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFormData((prev) => ({ ...prev, imageUrl: "" }));
-                        setUploadProgress(0);
-                      }}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 text-xs"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <p className="text-xs text-green-600 font-medium">✓ Image chargée avec succès</p>
-                  <label htmlFor="image-upload" className="text-xs text-[#005f8a] cursor-pointer hover:underline block">
-                    Changer l'image
-                  </label>
-                </div>
-              ) : (
-                <div className="mt-2 border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-[#005f8a] transition-colors cursor-pointer">
-                  <label htmlFor="image-upload" className="cursor-pointer block">
-                    <div className="text-gray-600">
-                      <p className="text-sm font-medium">Cliquez pour charger une image</p>
-                      <p className="text-xs text-gray-500 mt-1">ou glissez-déposez</p>
+                  {modal.list.notes && (
+                    <div className="bg-yellow-50 rounded-lg p-3">
+                      <p className="text-xs text-gray-400 uppercase mb-1">Notes du client</p>
+                      <p className="text-sm text-gray-700 italic">"{modal.list.notes}"</p>
                     </div>
-                  </label>
+                  )}
+                  {modal.list.totalAmount && (
+                    <div className="bg-green-50 rounded-lg p-3">
+                      <p className="text-xs text-gray-400 uppercase mb-1">Montant devis</p>
+                      <p className="text-xl font-bold text-green-600">{Number(modal.list.totalAmount).toLocaleString()} FCFA</p>
+                    </div>
+                  )}
                 </div>
-              )}
-
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleImageUpload(e)}
-                className="hidden"
-                id="image-upload"
-              />
-
-              {/* Barre de progression pendant le chargement */}
-              {uploadProgress > 0 && uploadProgress < 100 && (
-                <div className="mt-3">
-                  <div className="flex justify-between mb-1">
-                    <span className="text-xs font-medium text-gray-700">Chargement en cours...</span>
-                    <span className="text-xs font-bold text-[#005f8a]">{Math.round(uploadProgress)}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                    <div
-                      className="bg-gradient-to-r from-[#005f8a] to-[#ff8c42] h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${uploadProgress}%` }}
-                    />
-                  </div>
+                <div className="p-5 border-t flex gap-3">
+                  <button onClick={() => setModal(null)} className="flex-1 py-2 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50">Fermer</button>
+                  <button onClick={() => openModal("quote", modal.list)} className="flex-1 py-2 bg-[#005f8a] text-white rounded-xl font-medium hover:bg-[#004a6b]">
+                    Préparer le devis
+                  </button>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
-            <div className="flex gap-3 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => setShowAddProductDialog(false)}
-                className="flex-1 border-gray-200"
-              >
-                Annuler
-              </Button>
-              <Button
-                onClick={handleAddProduct}
-                disabled={addProductMutation.isPending}
-                className="flex-1 bg-[#005f8a] hover:bg-[#004a6a] text-white"
-              >
-                {addProductMutation.isPending ? "Ajout en cours..." : "Ajouter"}
-              </Button>
-            </div>
+            {/* Modal: Devis / Excel */}
+            {(modal.type === "quote" || modal.type === "send-quote") && (
+              <div>
+                <div className="p-5 border-b bg-green-50">
+                  <h3 className="font-bold text-green-800 text-lg">Préparer le devis</h3>
+                  <p className="text-sm text-green-600">{modal.list.customerName} — {modal.list.customerPhone}</p>
+                </div>
+                <div className="p-5">
+                  <div className="overflow-x-auto mb-4">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-gray-50">
+                          <th className="text-left p-2 font-medium">Désignation</th>
+                          <th className="text-center p-2 font-medium w-16">Qté</th>
+                          <th className="text-right p-2 font-medium w-32">Prix unit. FCFA</th>
+                          <th className="text-right p-2 font-medium w-28">Total</th>
+                          <th className="w-8"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {quoteItems.map((item, i) => (
+                          <tr key={i} className="border-b">
+                            <td className="p-1">
+                              <input value={item.designation} onChange={e => setQuoteItems(prev => { const u=[...prev]; u[i]={...u[i],designation:e.target.value}; return u; })}
+                                className="w-full border border-gray-200 rounded px-2 py-1 text-sm focus:ring-1 focus:ring-[#005f8a] outline-none" placeholder="Nom du livre..." />
+                            </td>
+                            <td className="p-1">
+                              <input type="number" min="1" value={item.quantite} onChange={e => setQuoteItems(prev => { const u=[...prev]; u[i]={...u[i],quantite:Number(e.target.value)}; return u; })}
+                                className="w-full border border-gray-200 rounded px-2 py-1 text-sm text-center outline-none" />
+                            </td>
+                            <td className="p-1">
+                              <input type="number" min="0" value={item.prixUnitaire} onChange={e => setQuoteItems(prev => { const u=[...prev]; u[i]={...u[i],prixUnitaire:Number(e.target.value)}; return u; })}
+                                className="w-full border border-gray-200 rounded px-2 py-1 text-sm text-right outline-none" />
+                            </td>
+                            <td className="p-2 text-right font-bold text-[#005f8a]">{(item.quantite*item.prixUnitaire).toLocaleString()}</td>
+                            <td className="p-1">
+                              <button onClick={() => setQuoteItems(prev => prev.filter((_,idx)=>idx!==i))} className="text-red-400 hover:text-red-600">✕</button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bg-[#005f8a] text-white">
+                          <td colSpan={3} className="p-3 font-bold text-right">TOTAL</td>
+                          <td className="p-3 font-bold text-right text-lg">{totalDevis.toLocaleString()} FCFA</td>
+                          <td></td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                  <button onClick={() => setQuoteItems(prev=>[...prev,{designation:"",quantite:1,prixUnitaire:0}])} className="text-sm text-[#005f8a] hover:underline mb-4">+ Ajouter une ligne</button>
+                </div>
+                <div className="p-5 border-t flex flex-wrap gap-2">
+                  <button onClick={() => setModal(null)} className="px-4 py-2 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 text-sm">Annuler</button>
+                  <button onClick={() => exportCSV(modal.list)} className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-xl text-sm hover:bg-green-600">
+                    <Download className="w-4 h-4" /> Télécharger CSV
+                  </button>
+                  <button onClick={() => saveAndUpdateStatus("quoted")} className="flex-1 py-2 bg-[#005f8a] text-white rounded-xl font-bold text-sm hover:bg-[#004a6b]">
+                    <Send className="w-4 h-4 inline mr-1" /> Valider & marquer "Devis envoyé"
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Modal: Facture */}
+            {modal.type === "invoice" && (
+              <div>
+                <div className="p-5 border-b bg-orange-50">
+                  <h3 className="font-bold text-orange-800 text-lg">Envoyer la facture</h3>
+                  <p className="text-sm text-orange-600">{modal.list.customerName}</p>
+                </div>
+                <div className="p-5">
+                  <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                    <p className="font-bold text-gray-700 mb-2">Récapitulatif</p>
+                    {modal.list.totalAmount ? (
+                      <p className="text-2xl font-bold text-[#005f8a]">{Number(modal.list.totalAmount).toLocaleString()} FCFA</p>
+                    ) : (
+                      <p className="text-red-500 text-sm">⚠️ Aucun devis établi. Préparez d'abord le devis.</p>
+                    )}
+                  </div>
+                  {modal.list.totalAmount && (
+                    <div className="space-y-2">
+                      <p className="text-sm text-gray-600">La facture sera envoyée à :</p>
+                      <div className="bg-blue-50 rounded-lg p-3 text-sm">
+                        {modal.list.customerPhone && <p>📱 SMS → {modal.list.customerPhone}</p>}
+                        {modal.list.customerEmail && <p>📧 Email → {modal.list.customerEmail}</p>}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="p-5 border-t flex gap-3">
+                  <button onClick={() => setModal(null)} className="flex-1 py-2 border border-gray-200 rounded-xl text-gray-600">Annuler</button>
+                  {modal.list.totalAmount && (
+                    <button onClick={() => saveAndUpdateStatus("invoiced")} className="flex-1 py-2 bg-orange-500 text-white rounded-xl font-bold hover:bg-orange-600">
+                      Confirmer l'envoi facture
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Modal: Lien paiement */}
+            {modal.type === "payment-link" && (
+              <div>
+                <div className="p-5 border-b bg-[#005f8a] text-white">
+                  <h3 className="font-bold text-lg">Lien de paiement Mobile</h3>
+                  <p className="text-blue-100 text-sm">{modal.list.customerName}</p>
+                </div>
+                <div className="p-5">
+                  {modal.list.totalAmount ? (
+                    <div className="space-y-4">
+                      <div className="bg-gray-50 rounded-xl p-4 text-center">
+                        <p className="text-sm text-gray-500">Montant à payer</p>
+                        <p className="text-3xl font-bold text-[#005f8a] mt-1">{Number(modal.list.totalAmount).toLocaleString()} FCFA</p>
+                      </div>
+                      <div className="space-y-2">
+                        {[
+                          { name:"Wave", color:"bg-blue-500", link:`https://pay.wave.com/m/cavally-livres?amount=${modal.list.totalAmount}` },
+                          { name:"Orange Money", color:"bg-orange-500", link:`tel:+2250173924646` },
+                          { name:"MTN MoMo", color:"bg-yellow-500", link:`tel:+2250501956464` },
+                        ].map(pm => (
+                          <div key={pm.name} className="flex items-center justify-between bg-gray-50 rounded-xl p-3">
+                            <span className="font-medium text-sm">{pm.name}</span>
+                            <button
+                              onClick={() => { navigator.clipboard.writeText(pm.link); alert("Lien copié !"); }}
+                              className={`${pm.color} text-white text-xs px-3 py-1.5 rounded-lg`}
+                            >
+                              Copier lien
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-red-500 text-center py-8">⚠️ Préparez d'abord le devis avant d'envoyer un lien de paiement.</p>
+                  )}
+                </div>
+                <div className="p-5 border-t">
+                  <button onClick={() => setModal(null)} className="w-full py-2 border border-gray-200 rounded-xl text-gray-600">Fermer</button>
+                </div>
+              </div>
+            )}
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
     </div>
   );
 }

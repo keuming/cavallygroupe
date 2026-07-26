@@ -37267,6 +37267,19 @@ var adminRouter = router({
     }).where(eqOp(supplyLists2.id, input.id));
     return { success: true };
   }),
+  listUsers: adminProcedure2.query(async () => {
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+    const result = await db.select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      phone: users.phone,
+      role: users.role,
+      createdAt: users.createdAt
+    }).from(users).orderBy(users.createdAt);
+    return result;
+  }),
   // Update Category
   updateCategory: adminProcedure2.input(external_exports.object({
     id: external_exports.number(),
