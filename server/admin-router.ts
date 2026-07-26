@@ -226,8 +226,7 @@ export const adminRouter = router({
       }
       if (list.extractedText && input.mode === "quote") {
         // Parser le texte extrait pour générer le JSON
-        const lines = list.extractedText.split("
-");
+        const lines = list.extractedText.split("\n");
         const items: Array<{quantite: number, designation: string}> = [];
         lines.forEach(line => {
           const clean = line.trim().replace(/[*_]+/g, "");
