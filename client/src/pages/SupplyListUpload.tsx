@@ -291,6 +291,22 @@ export default function SupplyListUpload() {
               </div>
             </div>
 
+            <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4">
+              <p className="text-sm font-semibold text-orange-800 mb-2">⚠️ Vous n'avez pas reçu votre devis dans les 24h ?</p>
+              <p className="text-sm text-orange-700 mb-2">Veuillez joindre notre service client :</p>
+              <div className="space-y-1">
+                <a href="tel:+2250173924646" className="flex items-center gap-2 text-sm font-bold text-orange-800 hover:text-orange-600">
+                  📞 +225 01 73 92 46 46
+                </a>
+                <a href="tel:+2250501956464" className="flex items-center gap-2 text-sm font-bold text-orange-800 hover:text-orange-600">
+                  📞 +225 05 01 95 64 64
+                </a>
+                <a href="mailto:service.client@cavally-livres.com" className="flex items-center gap-2 text-sm text-orange-700 hover:text-orange-600">
+                  📧 service.client@cavally-livres.com
+                </a>
+              </div>
+            </div>
+
             <div className="flex gap-3">
               <button
                 onClick={() => navigate("/")}
