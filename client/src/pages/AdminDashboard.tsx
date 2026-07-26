@@ -103,6 +103,15 @@ export default function AdminDashboard() {
     a.click();
   };
 
+  // Parser le contenu d'un fichier Word/texte pour extraire les items
+  const parseFileToQuoteItems = (fileData: string, fileName: string): QuoteItem[] => {
+    try {
+      // Pour les fichiers texte/word stockés en base64, on extrait ce qu'on peut
+      // Le texte extrait est dans extractedText si disponible
+      return [];
+    } catch { return []; }
+  };
+
   const openModal = (type: string, list: any) => {
     setActionMenu(null);
     if (type === 'edit-product' && list) {
@@ -110,6 +119,18 @@ export default function AdminDashboard() {
     }
     if (list.quotedItems) {
       try { setQuoteItems(JSON.parse(list.quotedItems)); } catch { setQuoteItems([{designation:"",quantite:1,prixUnitaire:0}]); }
+    } else if (list.extractedText) {
+      // Parser le texte extrait pour pré-remplir le devis
+      const lines = list.extractedText.split("\n");
+      const parsed: QuoteItem[] = [];
+      lines.forEach((line: string) => {
+        const clean = line.trim().replace(/\*/g,"").replace(/[_]+/g,"").trim();
+        const match = clean.match(/^(\d+)\s+(.{3,})/);
+        if (match) {
+          parsed.push({ designation: match[2].trim().substring(0, 100), quantite: parseInt(match[1]), prixUnitaire: 0 });
+        }
+      });
+      setQuoteItems(parsed.length > 0 ? parsed : [{designation:"",quantite:1,prixUnitaire:0}]);
     } else {
       setQuoteItems([{designation:"",quantite:1,prixUnitaire:0}]);
     }
@@ -789,7 +810,29 @@ export default function AdminDashboard() {
                       </tfoot>
                     </table>
                   </div>
-                  <button onClick={() => setQuoteItems(prev=>[...prev,{designation:"",quantite:1,prixUnitaire:0}])} className="text-sm text-[#005f8a] hover:underline mb-4">+ Ajouter une ligne</button>
+                  <div className="flex gap-3 mb-4">
+                    <button onClick={() => setQuoteItems(prev=>[...prev,{designation:"",quantite:1,prixUnitaire:0}])} className="text-sm text-[#005f8a] hover:underline">+ Ajouter une ligne</button>
+                    {modal.list.extractedText && (
+                      <button
+                        onClick={() => {
+                          const lines = modal.list.extractedText.split(" ");
+                          // Reconstituer les items depuis le texte
+                          const text = modal.list.extractedText;
+                          const regex = /(\d+)\s+([A-ZÀ-Ÿa-zà-ÿ][^0-9]{5,80})/g;
+                          const parsed: QuoteItem[] = [];
+                          let m;
+                          while ((m = regex.exec(text)) !== null) {
+                            parsed.push({ designation: m[2].trim().substring(0, 80), quantite: parseInt(m[1]), prixUnitaire: 0 });
+                          }
+                          if (parsed.length > 0) setQuoteItems(parsed);
+                          else alert("Impossible d'extraire automatiquement. Saisissez manuellement.");
+                        }}
+                        className="text-sm bg-green-50 text-green-700 hover:bg-green-100 px-3 py-1 rounded-lg"
+                      >
+                        ✨ Parser automatiquement
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="p-5 border-t flex flex-wrap gap-2">
                   <button onClick={() => setModal(null)} className="px-4 py-2 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 text-sm">Annuler</button>

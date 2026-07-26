@@ -39200,6 +39200,21 @@ var appRouter = router({
       notes: external_exports.string().optional()
     })).mutation(async ({ input, ctx }) => {
       const userId = ctx.user?.id;
+      let extractedText = "";
+      if (input.fileData && (input.fileType === "word" || input.fileType === "document")) {
+        try {
+          const base64Data = input.fileData.split(",")[1] || input.fileData;
+          const buffer = Buffer.from(base64Data, "base64");
+          const xmlMatch = buffer.toString("binary").match(/word\/document\.xml/);
+          if (xmlMatch) {
+            const xmlContent = buffer.toString("utf8");
+            const textMatches = xmlContent.match(/<w:t[^>]*>([^<]+)<\/w:t>/g) || [];
+            extractedText = textMatches.map((m2) => m2.replace(/<[^>]+>/g, "")).join(" ");
+          }
+        } catch (e) {
+          console.error("[SupplyList] Extract error:", e);
+        }
+      }
       const result = await createSupplyList({
         userId,
         fileName: input.fileName,
@@ -39211,6 +39226,16 @@ var appRouter = router({
         customerPhone: input.customerPhone,
         notes: input.notes
       });
+      if (extractedText && result?.id) {
+        try {
+          const DB = await getDb();
+          const { supplyLists: sl } = await Promise.resolve().then(() => (init_schema2(), schema_exports));
+          const { eq: eqOp } = await Promise.resolve().then(() => (init_drizzle_orm(), drizzle_orm_exports));
+          await DB.update(sl).set({ extractedText }).where(eqOp(sl.id, result.id));
+        } catch (e) {
+          console.error("[SupplyList] Save text error:", e);
+        }
+      }
       try {
         const { sendOrderConfirmationEmail: sendOrderConfirmationEmail2 } = await Promise.resolve().then(() => (init_email_service(), email_service_exports));
         const nodemailer = await import("nodemailer");

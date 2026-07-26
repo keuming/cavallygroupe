@@ -705,6 +705,23 @@ export const appRouter = router({
       }))
       .mutation(async ({ input, ctx }) => {
         const userId = ctx.user?.id;
+        // Extraire le texte du fichier si c'est un Word (base64)
+        let extractedText = '';
+        if (input.fileData && (input.fileType === 'word' || input.fileType === 'document')) {
+          try {
+            // Décoder base64 et extraire le texte XML du docx
+            const base64Data = input.fileData.split(',')[1] || input.fileData;
+            const buffer = Buffer.from(base64Data, 'base64');
+            // Extraire le texte brut depuis le XML word/document.xml
+            const xmlMatch = buffer.toString('binary').match(/word\/document\.xml/);
+            if (xmlMatch) {
+              const xmlContent = buffer.toString('utf8');
+              const textMatches = xmlContent.match(/<w:t[^>]*>([^<]+)<\/w:t>/g) || [];
+              extractedText = textMatches.map((m: string) => m.replace(/<[^>]+>/g, '')).join(' ');
+            }
+          } catch(e) { console.error('[SupplyList] Extract error:', e); }
+        }
+
         const result = await createSupplyList({
           userId,
           fileName: input.fileName,
@@ -716,6 +733,16 @@ export const appRouter = router({
           customerPhone: input.customerPhone,
           notes: input.notes,
         });
+        
+        // Sauvegarder le texte extrait
+        if (extractedText && result?.id) {
+          try {
+            const DB = await getDb();
+            const { supplyLists: sl } = await import('../drizzle/schema');
+            const { eq: eqOp } = await import('drizzle-orm');
+            await DB.update(sl).set({ extractedText }).where(eqOp(sl.id, result.id));
+          } catch(e) { console.error('[SupplyList] Save text error:', e); }
+        }
 
         // Envoyer email à l'équipe
         try {
